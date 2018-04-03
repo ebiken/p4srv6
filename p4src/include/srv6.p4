@@ -50,27 +50,45 @@ parser parse_ipv6_srh {
 parser parse_ipv6_srh_seg0 {
 	extract(ipv6_srh_segment_list[0]);
 	return select(ipv6_srh.lastEntry) {
-		0 : ingress;
+		//0 : ingress;
+		0 : parse_ipv6_srh_payload;
 		default: parse_ipv6_srh_seg1;
 	}
 }
 parser parse_ipv6_srh_seg1 {
 	extract(ipv6_srh_segment_list[1]);
 	return select(ipv6_srh.lastEntry) {
-		1 : ingress;
+		//1 : ingress;
+		1 : parse_ipv6_srh_payload;
 		default: parse_ipv6_srh_seg2;
 	}
 }
 parser parse_ipv6_srh_seg2 {
 	extract(ipv6_srh_segment_list[2]);
 	return select(ipv6_srh.lastEntry) {
-		1 : ingress;
+		//2 : ingress;
+		2 : parse_ipv6_srh_payload;
 		default: parse_ipv6_srh_seg3;
 	}
 }
 parser parse_ipv6_srh_seg3 {
 	extract(ipv6_srh_segment_list[3]);
 	// SRH_MAX_SEGMENTS +1 = 4 so this is the last segment in the list.
+	//return ingress;
+	return parse_ipv6_srh_payload;
+}
+parser parse_ipv6_srh_payload {
+	return select(ipv6_srh.nextHeader) {
+		//IP_PROTOCOLS_ICMP : parse_icmp;
+		IP_PROTOCOLS_IPV4 : parse_ipv4;
+		IP_PROTOCOLS_TCP  : parse_tcp;
+		IP_PROTOCOLS_UDP  : parse_udp;
+		IP_PROTOCOLS_IPV6 : parse_ipv6_inner;
+		default: ingress;
+	}
+}
+parser parse_ipv6_inner {
+	extract(ipv6_inner);
 	return ingress;
 }
 
@@ -89,23 +107,12 @@ action ipv6_srh_insert(proto) {
 // original ipv6 will be copied to ipv6_inner.
 // ipv6 will be new outer ipv6 header.
 action ipv6_encap_ipv6(srcAddr, dstAddr) {
+	// ipv6_inner is actually original header. copy it.
 	add_header(ipv6_inner);
-//	copy_header(ipv6_inner, ipv6);
-	modify_field(ipv6_inner.version, 6);
-//	modify_field(ipv6_inner.trafficClass, ipv6.trafficClass);
-//	modify_field(ipv6_inner.flowLabel, ipv6.flowLabel);
-//	modify_field(ipv6_inner.payloadLen, ipv6.payloadLen);
-//	modify_field(ipv6_inner.nextHdr, ipv6.nextHdr);
-//	modify_field(ipv6_inner.hopLimit, ipv6.hopLimit);
-//	modify_field(ipv6_inner.srcAddr, ipv6.srcAddr);
-//	modify_field(ipv6_inner.dstAddr, ipv6.dstAddr);
-
-	modify_field(ipv6.version, 6);
-	//modify_field(ipv6.trafficClass, 0);
-	//modify_field(ipv6.flowLabel, 0);
-	modify_field(ipv6.payloadLen, ipv6_inner.payloadLen+20);
+	copy_header(ipv6_inner, ipv6);
+	// update original (outer) header
+	add_to_field(ipv6.payloadLen, 20); // size of ipv6_inner
 	modify_field(ipv6.nextHdr, IP_PROTOCOLS_IPV6);
-	//modify_field(ipv6.hopLimit, 0);
 	modify_field(ipv6.srcAddr, srcAddr);
 	modify_field(ipv6.dstAddr, dstAddr);
 }
@@ -137,7 +144,7 @@ action srv6_T_Insert2(sid0, sid1) {
     modify_field(ipv6_srh_segment_list[1].sid, sid1);
     add_header(ipv6_srh_segment_list[2]);
     modify_field(ipv6_srh_segment_list[2].sid, sid0);
-    modify_field(ipv6_srh.hdrExtLen, 6); // TODO
+    modify_field(ipv6_srh.hdrExtLen, 6);
     modify_field(ipv6_srh.segmentsLeft, 2);
     modify_field(ipv6_srh.lastEntry, 2);
     // update original ipv6 headers
@@ -167,9 +174,48 @@ action srv6_T_Insert3(sid0, sid1, sid2) {
 action srv6_T_Encap1(srcAddr, sid0) {
 	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
 	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
-	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
 	add_header(ipv6_srh_segment_list[0]);
 	modify_field(ipv6_srh_segment_list[0].sid, sid0);
-	// TODO: set hdrExtLen, segmentsLeft, lastEntry
+    modify_field(ipv6_srh.hdrExtLen, 2); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 0);
+    modify_field(ipv6_srh.lastEntry, 0);
+	// update original ipv6 headers
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+	modify_field(ipv6.dstAddr, sid0);
+	add_to_field(ipv6.payloadLen, 8+16*1); // SRH(8)+Seg(16)*1
+}
+action srv6_T_Encap2(srcAddr, sid0, sid1) {
+	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
+	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+	add_header(ipv6_srh_segment_list[0]);
+	modify_field(ipv6_srh_segment_list[0].sid, sid1);
+	add_header(ipv6_srh_segment_list[1]);
+	modify_field(ipv6_srh_segment_list[1].sid, sid0);
+    modify_field(ipv6_srh.hdrExtLen, 4); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 1);
+    modify_field(ipv6_srh.lastEntry, 1);
+	// update original ipv6 headers
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+	modify_field(ipv6.dstAddr, sid0);
+	add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
+}
+action srv6_T_Encap3(srcAddr, sid0, sid1, sid2) {
+	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
+	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+	add_header(ipv6_srh_segment_list[0]);
+	modify_field(ipv6_srh_segment_list[0].sid, sid2);
+	add_header(ipv6_srh_segment_list[1]);
+	modify_field(ipv6_srh_segment_list[1].sid, sid1);
+	add_header(ipv6_srh_segment_list[2]);
+	modify_field(ipv6_srh_segment_list[2].sid, sid0);
+    modify_field(ipv6_srh.hdrExtLen, 6); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 2);
+    modify_field(ipv6_srh.lastEntry, 2);
+	// update original ipv6 headers
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+	modify_field(ipv6.dstAddr, sid0);
+	add_to_field(ipv6.payloadLen, 8+16*3); // SRH(8)+Seg(16)*3
 }
 

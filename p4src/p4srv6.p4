@@ -46,7 +46,10 @@ table srv6_localsid {
 	reads {
 		ipv6.dstAddr: exact; // TODO: should be lpm/masked match?
 	}
-	actions {srv6_T_Insert1; srv6_T_Insert2; srv6_T_Insert3; srv6_T_Encap1;}
+	actions {
+		srv6_T_Insert1; srv6_T_Insert2; srv6_T_Insert3;
+		srv6_T_Encap2; srv6_T_Encap1; srv6_T_Encap3;
+	}
 }
 
 control ingress{
