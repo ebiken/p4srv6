@@ -40,6 +40,9 @@ table_add srv6_localsid srv6_T_Insert3 db8::2 => db8::31 db8::32 db8::33
 table_add srv6_localsid srv6_T_Encap1 db8::2 => db8::1:11 db8::11
 table_add srv6_localsid srv6_T_Encap2 db8::2 => db8::1:11 db8::21 db8::22
 table_add srv6_localsid srv6_T_Encap3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
+
+>> srcAddr=db8::1:11, sid0=db8::11
+table_add srv6_localsid srv6_End_M_GTP6_D3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
 ```
 
 Ping from host0 (172.20.0.1/db8::1) to host1 (172.20.0.2/db8::2)

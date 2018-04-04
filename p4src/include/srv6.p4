@@ -219,3 +219,39 @@ action srv6_T_Encap3(srcAddr, sid0, sid1, sid2) {
 	add_to_field(ipv6.payloadLen, 8+16*3); // SRH(8)+Seg(16)*3
 }
 
+action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
+	// 2. pop the IP, UDP and GTP headers
+	//   Size information in the original IP header is required.
+	//   Thus, just pop UDP/GTP header and keep original IP header.
+	remove_header(udp);
+	remove_header(gtpu);
+    subtract_from_field(ipv6.payloadLen, 16); // UDP(8)+GTPU(8)
+	// 3. push a new IPv6 header with its own SRH <S2, S3>
+	//   Update exsiting (outer) IPv6 header
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
+    ipv6_srh_insert(0); // push srh with nextHeader=0
+    modify_field(ipv6_srh.nextHeader, gtpu_payload.version);
+	// TODO: set correct value for IPv6
+	// IP_PROTOCOLS_IPV4(4), IP_PROTOCOLS_IPV6(41)
+	//	(gtpu_payload.version && 4)*IP_PROTOCOLS_IPV4
+	//	+ (gtpu_payload.version && 6)*IP_PROTOCOLS_IPV6
+	//	);
+	add_header(ipv6_srh_segment_list[0]);
+    modify_field(ipv6_srh_segment_list[0].sid, sid2);
+    add_header(ipv6_srh_segment_list[1]);
+    modify_field(ipv6_srh_segment_list[1].sid, sid1);
+	// End.M.GTP6.D use seg0 as DA, but does NOT include it in the seg list.
+    //add_header(ipv6_srh_segment_list[2]);
+    //modify_field(ipv6_srh_segment_list[2].sid, sid0);
+    modify_field(ipv6_srh.hdrExtLen, 4); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 2);
+    //modify_field(ipv6_srh.lastEntry, 2);
+    modify_field(ipv6_srh.lastEntry, 1); // TODO: sid0 is not included thus 1 smaller.
+	// 4. set the outer IPv6 SA to A
+    modify_field(ipv6.srcAddr, srcAddr);
+	// 5. set the outer IPv6 DA to S1
+    modify_field(ipv6.dstAddr, sid0); 
+	// 6. forward according to the dirst segment of the SRv6 Policy
+}
+

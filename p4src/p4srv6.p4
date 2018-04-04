@@ -18,6 +18,7 @@
 #include "include/headers.p4"
 #include "include/parser.p4"
 #include "include/srv6.p4"
+#include "include/gtp.p4"
 
 /*** ACTIONS ***/
 
@@ -49,6 +50,7 @@ table srv6_localsid {
 	actions {
 		srv6_T_Insert1; srv6_T_Insert2; srv6_T_Insert3;
 		srv6_T_Encap2; srv6_T_Encap1; srv6_T_Encap3;
+		srv6_End_M_GTP6_D3;
 	}
 }
 
