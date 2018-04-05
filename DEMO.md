@@ -14,7 +14,7 @@ Run switch
 ```
 >> simple_switch is from bmv2.
 >> ex: ~/p4lang/bmv2/targets/simple_switch/simple_switch
-sudo simple_switch p4srv6.json -i 0@vtap0 -i 1@vtap1 -- nanolog \
+sudo simple_switch p4srv6.json -i 0@vtap0 -i 1@vtap1 -i 2@vtap102 -i 3@vtap103 -- nanolog \
 ipc:///tmp/bm-0-log.ipc --log-console -L debug --notifications-addr \
 ipc:///tmp/bmv2-0-notifications.ipc
 ```
@@ -30,8 +30,12 @@ Enter table entry.
 >> Add entry to a match table:
 >>   table_add <table name> <action name> <match fields> => <action parameters> [priority]
 RuntimeCmd:
-table_add fwd forward 0 => 1
-table_add fwd forward 1 => 0
+//table_add fwd forward 0 => 1
+//table_add fwd forward 1 => 0
+table_add fwd forward 0 => 2
+table_add fwd forward 2 => 0
+table_add fwd forward 1 => 3
+table_add fwd forward 3 => 1
 
 table_add srv6_localsid srv6_T_Insert1 db8::2 => db8::11
 table_add srv6_localsid srv6_T_Insert2 db8::2 => db8::21 db8::22
@@ -43,6 +47,7 @@ table_add srv6_localsid srv6_T_Encap3 db8::2 => db8::1:11 db8::31 db8::32 db8::3
 
 >> srcAddr=db8::1:11, sid0=db8::11
 table_add srv6_localsid srv6_End_M_GTP6_D3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
+table_add srv6_localsid srv6_End_M_GTP6_D3 db8::2:2 => db8::1:11 db8::31 db8::32 db8::33
 ```
 
 Ping from host0 (172.20.0.1/db8::1) to host1 (172.20.0.2/db8::2)
@@ -54,3 +59,20 @@ Capture packet on host1 to confirm SRH is inserted.
 # ip netns exec host0 ping6 db8::2
 ```
 
+## GTP encap table/action
+
+gtpu_encap_v6 table and action can be used to generate IPv6 over GTP-U over UDP/IPv6.
+Example table entry:
+```
+>> srcAddr, dstAddr, srcPort(0xaa), dstPort(2123), type(255:G-PDU), teid(100)
+>> note: Message Type 1 is Echo request, 255 is G-PDU
+table_add gtpu_encap_v6 gtpu_encap_v6 db8::2 => db8::1:1 db8::2:2 0x100 2123 255 100 
+
+>> Example to configure IPv6 -> GTP -> SRv6 using srv6_End_M_GTP6_D3.
+table_add fwd forward 0 => 2
+table_add fwd forward 2 => 0
+table_add fwd forward 1 => 3
+table_add fwd forward 3 => 1
+table_add srv6_localsid srv6_End_M_GTP6_D3 db8::2:2 => db8::1:11 db8::31 db8::32 db8::33
+table_add gtpu_encap_v6 gtpu_encap_v6 db8::2 => db8::1:1 db8::2:2 0x100 2123 255 100
+```

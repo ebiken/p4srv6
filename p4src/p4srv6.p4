@@ -54,7 +54,17 @@ table srv6_localsid {
 	}
 }
 
+// GTP Tables
+table gtpu_encap_v6 {
+	reads {
+		ipv6.dstAddr: exact; // TODO: should be lpm/masked match?
+	}
+	actions { gtpu_encap_v6; }
+}
+
+///// CONTROL /////////////////////////////////////////////
 control ingress{
     apply(fwd);
 	apply(srv6_localsid);
+	apply(gtpu_encap_v6);
 }

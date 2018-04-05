@@ -15,7 +15,7 @@
 
 /* Written in P4_14 */
 
-@pragma header_ordering ethernet ipv6 ipv6_srh ipv6_srh_segment_list[0] ipv6_srh_segment_list[1] ipv6_srh_segment_list[2] ipv6_srh_segment_list[3] ipv6_inner ipv4 udp tcp gtpu
+@pragma header_ordering ethernet ipv6 ipv6_srh ipv6_srh_segment_list[0] ipv6_srh_segment_list[1] ipv6_srh_segment_list[2] ipv6_srh_segment_list[3] ipv6_inner ipv4 tcp udp gtpu gtpu_ipv4 gtpu_ipv6
 
 // header defititions
 
@@ -45,6 +45,7 @@ header_type ipv4_t {
     }
 }
 header ipv4_t ipv4;
+header ipv4_t gtpu_ipv4;
 
 header_type ipv6_t {
     fields {
@@ -60,6 +61,7 @@ header_type ipv6_t {
 }
 header ipv6_t ipv6;
 header ipv6_t ipv6_inner;
+header ipv6_t gtpu_ipv6;
 
 header_type tcp_t {
     fields {

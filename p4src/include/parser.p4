@@ -37,7 +37,6 @@ parser parse_tcp {
 parser parse_udp {
     extract(udp);
     return select(latest.dstPort) {
-        //UDP_PORT_XXX : parse_XXX;
         UDP_PORT_GTPU : parse_gtpu;
         default: ingress;
     }

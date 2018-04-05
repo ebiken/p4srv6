@@ -32,6 +32,10 @@ create_network () {
     # Create veth
     run ip link add veth0 type veth peer name vtap0
     run ip link add veth1 type veth peer name vtap1
+	# Create vtap pair to connect back to back
+    run ip link add vtap102 type veth peer name vtap103
+    run ip link set dev vtap102 up
+    run ip link set dev vtap103 up
 
     # Connect veth between host0 and host1
     run ip link set veth0 netns host0

@@ -231,8 +231,9 @@ action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
     modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
     add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
     ipv6_srh_insert(0); // push srh with nextHeader=0
-    modify_field(ipv6_srh.nextHeader, gtpu_payload.version);
 	// TODO: set correct value for IPv6
+    modify_field(ipv6_srh.nextHeader, 41);
+    // modify_field(ipv6_srh.nextHeader, gtpu_payload.version);
 	// IP_PROTOCOLS_IPV4(4), IP_PROTOCOLS_IPV6(41)
 	//	(gtpu_payload.version && 4)*IP_PROTOCOLS_IPV4
 	//	+ (gtpu_payload.version && 6)*IP_PROTOCOLS_IPV6
