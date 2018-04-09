@@ -42,6 +42,16 @@ header_type ipv6_srh_segment_t {
 // +1 for inline mode
 header ipv6_srh_segment_t ipv6_srh_segment_list[SRH_MAX_SEGMENTS+1];
 
+header_type srv6_meta_t {
+	fields {
+		teid: 32;
+		EndMGTP6E_SRGW : 96;
+		segmentsLeft: 8;
+		ipv6_payloadLen : 16;
+	}
+}
+metadata srv6_meta_t srv6_meta;
+
 ///// PARSER //////////////////////////////////////////////
 parser parse_ipv6_srh {
 	extract(ipv6_srh);
@@ -94,6 +104,7 @@ parser parse_ipv6_inner {
 
 ///// ACTION //////////////////////////////////////////////
 action ipv6_srh_insert(proto) {
+	// TODO: should we add SRH(8) size here to ipv6.payloadLen, or in each functions?
 	add_header(ipv6_srh);
 	modify_field(ipv6_srh.nextHeader, proto);
 	modify_field(ipv6_srh.hdrExtLen, 0);
@@ -111,7 +122,7 @@ action ipv6_encap_ipv6(srcAddr, dstAddr) {
 	add_header(ipv6_inner);
 	copy_header(ipv6_inner, ipv6);
 	// update original (outer) header
-	add_to_field(ipv6.payloadLen, 20); // size of ipv6_inner
+	add_to_field(ipv6.payloadLen, 40); // size of ipv6_inner
 	modify_field(ipv6.nextHdr, IP_PROTOCOLS_IPV6);
 	modify_field(ipv6.srcAddr, srcAddr);
 	modify_field(ipv6.dstAddr, dstAddr);
@@ -219,6 +230,37 @@ action srv6_T_Encap3(srcAddr, sid0, sid1, sid2) {
 	add_to_field(ipv6.payloadLen, 8+16*3); // SRH(8)+Seg(16)*3
 }
 
+action srv6_T_Encaps_Red2(srcAddr, sid0, sid1) {
+    ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
+    ipv6_srh_insert(IP_PROTOCOLS_IPV6);
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    add_header(ipv6_srh_segment_list[0]);
+    modify_field(ipv6_srh_segment_list[0].sid, sid1);
+    modify_field(ipv6_srh.hdrExtLen, 2); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 1);
+    modify_field(ipv6_srh.lastEntry, 0);
+    // update original ipv6 headers
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    modify_field(ipv6.dstAddr, sid0);
+    add_to_field(ipv6.payloadLen, 8+16*1); // SRH(8)+Seg(16)*1
+}
+action srv6_T_Encaps_Red3(srcAddr, sid0, sid1, sid2) {
+    ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
+    ipv6_srh_insert(IP_PROTOCOLS_IPV6);
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    add_header(ipv6_srh_segment_list[0]);
+    modify_field(ipv6_srh_segment_list[0].sid, sid1);
+    add_header(ipv6_srh_segment_list[1]);
+    modify_field(ipv6_srh_segment_list[1].sid, sid2);
+    modify_field(ipv6_srh.hdrExtLen, 4); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 2);
+    modify_field(ipv6_srh.lastEntry, 1);
+    // update original ipv6 headers
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    modify_field(ipv6.dstAddr, sid0);
+    add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
+}
+
 action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
 	// 2. pop the IP, UDP and GTP headers
 	//   Size information in the original IP header is required.
@@ -243,16 +285,59 @@ action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
     add_header(ipv6_srh_segment_list[1]);
     modify_field(ipv6_srh_segment_list[1].sid, sid1);
 	// End.M.GTP6.D use seg0 as DA, but does NOT include it in the seg list.
-    //add_header(ipv6_srh_segment_list[2]);
-    //modify_field(ipv6_srh_segment_list[2].sid, sid0);
     modify_field(ipv6_srh.hdrExtLen, 4); // 2bytes*(number of seg)
     modify_field(ipv6_srh.segmentsLeft, 2);
-    //modify_field(ipv6_srh.lastEntry, 2);
-    modify_field(ipv6_srh.lastEntry, 1); // TODO: sid0 is not included thus 1 smaller.
+    modify_field(ipv6_srh.lastEntry, 1); // sid0 is not included thus 1 smaller.
 	// 4. set the outer IPv6 SA to A
     modify_field(ipv6.srcAddr, srcAddr);
 	// 5. set the outer IPv6 DA to S1
     modify_field(ipv6.dstAddr, sid0); 
-	// 6. forward according to the dirst segment of the SRv6 Policy
+	// 6. forward according to the first segment of the SRv6 Policy
 }
+action srv6_End_M_GTP6_E(srcAddr) {
+    // 2.    decrement SL
+	subtract_from_field(ipv6_srh.segmentsLeft, 1);
+	// store SRGW to meta data. dstAddr = SRGW::TEID
+	shift_right(srv6_meta.EndMGTP6E_SRGW, ipv6.dstAddr, 32);
+	modify_field(ipv6.srcAddr, srcAddr);
+    // 3.    store SRH[SL] in variable new_DA
+	srv6_meta.segmentsLeft = ipv6_srh.segmentsLeft;
+    // 4.    store TEID in variable new_TEID
+	bit_and(srv6_meta.teid, 0x000000000000000000000000ffffffff, ipv6.dstAddr);
+    // 5.    pop IP header and all it's extension headers
+	// don't pop IPv6 header. will reuse it.
+	remove_header(ipv6_srh);
+	remove_header(ipv6_srh_segment_list[0]); // TODOTODO
+	//remove_header(ipv6_srh_segment_list[1]); // TODOTODO
+    // 7.    set IPv6 DA to new_DA
+	// TODOTODO: maybe we need table to call srv6_End_M_GTP6_E1~3 based on SL.
+	//modify_field(ipv6.dstAddr, ipv6_srh_segment_list[srv6_meta.segmentsLeft].sid);
+	modify_field(ipv6.dstAddr, ipv6_srh_segment_list[0].sid); // TODO: HACK: SL[0] is gNB addr
+	// Adjust IP length: UDP(8)+GTP(8) - ( SRH(8) + SEG(16)*(n+1) )
+	srv6_meta.ipv6_payloadLen = ipv6.payloadLen+8+8-8-16; // TODO
+	modify_field(ipv6.payloadLen, srv6_meta.ipv6_payloadLen);
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_UDP);
+    // 6.    push new IPv6 header and GTP-U header
+	add_header(udp);
+	add_header(gtpu);
+	// Although identical, you have to add gtpu_ipv6 and remove ipv6_inner
+	//  to help deparser to undertstand it would come after gtpu_ipv6 header.
+	add_header(gtpu_ipv6);
+	copy_header(gtpu_ipv6, ipv6_inner);
+	remove_header(ipv6_inner);
 
+    modify_field(udp.srcPort, 1000); // TODO: generate from flow label, or random??
+    modify_field(udp.dstPort, UDP_PORT_GTPU);
+	// ipv6.payloadLen does not incude ipv6 header. udp.len does include udp header.
+	// Thus, udp.length = ipv6.payloadLen.
+    modify_field(udp.length_, ipv6.payloadLen); 
+	// TODO: update UDP checksum
+    // 8.    set GTP_TEID to new_TEID
+	modify_field(gtpu.teid, srv6_meta.teid);
+    modify_field(gtpu.flags, 0x30);
+    modify_field(gtpu.type, 255); // G-PDU(255)
+	// gtpu.length length of payload and optional fields.
+	// exclude udp(8) and 8 byte mandatory field (including teid) 
+    modify_field(gtpu.length, udp.length_-16);
+    // 9.    lookup the new_DA and forward the packet accordingly
+}

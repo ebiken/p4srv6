@@ -27,6 +27,7 @@
 #define IP_PROTOCOLS_IPV6 41
 #define IP_PROTOCOLS_SRV6 43
 
+#define UDP_PORT_GTPC 2123 // GTP signaling and control (GTP-C)
 #define UDP_PORT_GTPU 2152 // GTP user data messages (GTP-U)
 
 parser parse_tcp {
@@ -37,11 +38,11 @@ parser parse_tcp {
 parser parse_udp {
     extract(udp);
     return select(latest.dstPort) {
+        // UDP_PORT_GTPC : parse_gtpc;
         UDP_PORT_GTPU : parse_gtpu;
         default: ingress;
     }
 }
-
 parser parse_ipv6 {
 	extract(ipv6);
 	return select(latest.nextHdr) {

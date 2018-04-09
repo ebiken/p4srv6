@@ -50,21 +50,26 @@ table srv6_localsid {
 	actions {
 		srv6_T_Insert1; srv6_T_Insert2; srv6_T_Insert3;
 		srv6_T_Encap2; srv6_T_Encap1; srv6_T_Encap3;
+		srv6_T_Encaps_Red2; srv6_T_Encaps_Red3;
 		srv6_End_M_GTP6_D3;
+		srv6_End_M_GTP6_E;
 	}
 }
 
 // GTP Tables
-table gtpu_encap_v6 {
+table gtpu_v6 {
 	reads {
 		ipv6.dstAddr: exact; // TODO: should be lpm/masked match?
 	}
-	actions { gtpu_encap_v6; }
+	actions {
+		gtpu_encap_v6;
+		gtpu_decap_v6;
+	}
 }
 
 ///// CONTROL /////////////////////////////////////////////
 control ingress{
     apply(fwd);
 	apply(srv6_localsid);
-	apply(gtpu_encap_v6);
+	apply(gtpu_v6);
 }

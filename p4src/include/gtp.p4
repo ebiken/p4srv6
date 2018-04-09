@@ -37,28 +37,16 @@ header_type gtpu_t {
 }
 header gtpu_t gtpu;
 
-// Parse first 4 bit of GTP-U payload to to identify protocol inside GTP-U.
-// This only works if one is sure user packet is either IPv4 or IPv6.
-//header_type gtpu_payload_t {
-//	fields {
-//		version : 4; // either IPv4(4) or IPv6(6)
-//	}
-//}
-//header gtpu_payload_t gtpu_payload;
-
 ///// PARSER //////////////////////////////////////////////
+
 parser parse_gtpu {
     extract(gtpu);
-    //return parse_gtpu_payload;
+	return ingress;
 	return select(current(0,4)) { // version field
 		0x04 : parse_gtpu_ipv4;
 		0x06 : parse_gtpu_ipv6;
 	}
 }
-//parser parse_gtpu_payload {
-//	extract(gtpu_payload);
-//	return ingress;
-//}
 parser parse_gtpu_ipv4 {
 	extract(gtpu_ipv4);
 	return ingress;
@@ -67,6 +55,7 @@ parser parse_gtpu_ipv6 {
 	extract(gtpu_ipv6);
 	return ingress;
 }
+
 ///// ACTIONS /////////////////////////////////////////////
 action gtpu_encap_v6(srcAddr, dstAddr, srcPort, dstPort, type, teid) {
 	// ethernet|ipv6 => ethernet|ipv6(new)|udp|gtpu|gtpu_ipv6(original)
@@ -92,7 +81,11 @@ action gtpu_encap_v6(srcAddr, dstAddr, srcPort, dstPort, type, teid) {
 	modify_field(gtpu.teid, teid);
 }
 
-
+action gtpu_decap_v6() {
+	remove_header(udp);
+	remove_header(gtpu);
+	modify_field(ipv6.nextHdr, IP_PROTOCOLS_IPV6);
+}
 
 
 
