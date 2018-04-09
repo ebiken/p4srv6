@@ -182,7 +182,7 @@ action srv6_T_Insert3(sid0, sid1, sid2) {
 	add_to_field(ipv6.payloadLen, 8+16*4); // SRH(8)+Seg(16)*4
 }
 
-action srv6_T_Encap1(srcAddr, sid0) {
+action srv6_T_Encaps1(srcAddr, sid0) {
 	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
 	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
 	add_header(ipv6_srh_segment_list[0]);
@@ -195,7 +195,7 @@ action srv6_T_Encap1(srcAddr, sid0) {
 	modify_field(ipv6.dstAddr, sid0);
 	add_to_field(ipv6.payloadLen, 8+16*1); // SRH(8)+Seg(16)*1
 }
-action srv6_T_Encap2(srcAddr, sid0, sid1) {
+action srv6_T_Encaps2(srcAddr, sid0, sid1) {
 	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
 	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
 	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
@@ -211,7 +211,7 @@ action srv6_T_Encap2(srcAddr, sid0, sid1) {
 	modify_field(ipv6.dstAddr, sid0);
 	add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
 }
-action srv6_T_Encap3(srcAddr, sid0, sid1, sid2) {
+action srv6_T_Encaps3(srcAddr, sid0, sid1, sid2) {
 	ipv6_encap_ipv6(srcAddr, sid0); // dstAddr==sid0
 	ipv6_srh_insert(IP_PROTOCOLS_IPV6);
 	modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);

@@ -41,9 +41,9 @@ table_add srv6_localsid srv6_T_Insert1 db8::2 => db8::11
 table_add srv6_localsid srv6_T_Insert2 db8::2 => db8::21 db8::22
 table_add srv6_localsid srv6_T_Insert3 db8::2 => db8::31 db8::32 db8::33
 >> srcAddr=db8::1:11, sid0=db8::11
-table_add srv6_localsid srv6_T_Encap1 db8::2 => db8::1:11 db8::11
-table_add srv6_localsid srv6_T_Encap2 db8::2 => db8::1:11 db8::21 db8::22
-table_add srv6_localsid srv6_T_Encap3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
+table_add srv6_localsid srv6_T_Encaps1 db8::2 => db8::1:11 db8::11
+table_add srv6_localsid srv6_T_Encaps2 db8::2 => db8::1:11 db8::21 db8::22
+table_add srv6_localsid srv6_T_Encaps3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
 
 >> srcAddr=db8::1:11, sid0=db8::11
 table_add srv6_localsid srv6_End_M_GTP6_D3 db8::2 => db8::1:11 db8::31 db8::32 db8::33
