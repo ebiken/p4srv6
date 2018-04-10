@@ -261,6 +261,30 @@ action srv6_T_Encaps_Red3(srcAddr, sid0, sid1, sid2) {
     add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
 }
 
+///// End.* functions
+// 4.10. End.DT6: Endpoint with decapsulation and specific IPv6 table lookup
+// 1. IF NH=SRH and SL > 0
+// 2.   drop the packet ;; Ref1
+// 3. ELSE IF ENH = 41 ;; Ref2
+// 4.   pop the (outer) IPv6 header and its extension headers
+// 5.   lookup the exposed inner IPv6 DA in IPv6 table T
+// 6.   forward via the matched table entry
+// 7. ELSE
+// 8.   drop the packet
+action srv6_End_DT6() {
+	copy_header(ipv6, ipv6_inner);
+	remove_header(ipv6_srh);
+	// remove all possible SIDs regardless of if it actually exists
+	// not sure if this works on non-BMv2 switches (i.e. ASIC,NPU,FPGA)
+	remove_header(ipv6_srh_segment_list[0]);
+	remove_header(ipv6_srh_segment_list[1]);
+	remove_header(ipv6_srh_segment_list[2]);
+	remove_header(ipv6_srh_segment_list[3]);
+	remove_header(ipv6_inner);
+	// TODO: Add flag to Lookup IPv6 Table specific to the SID
+}
+
+///// End.M.* functions
 action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
 	// 2. pop the IP, UDP and GTP headers
 	//   Size information in the original IP header is required.
@@ -307,12 +331,14 @@ action srv6_End_M_GTP6_E(srcAddr) {
     // 5.    pop IP header and all it's extension headers
 	// don't pop IPv6 header. will reuse it.
 	remove_header(ipv6_srh);
-	remove_header(ipv6_srh_segment_list[0]); // TODOTODO
-	//remove_header(ipv6_srh_segment_list[1]); // TODOTODO
+	remove_header(ipv6_srh_segment_list[0]);
+	remove_header(ipv6_srh_segment_list[1]);
+	remove_header(ipv6_srh_segment_list[2]);
+	remove_header(ipv6_srh_segment_list[3]);
     // 7.    set IPv6 DA to new_DA
-	// TODOTODO: maybe we need table to call srv6_End_M_GTP6_E1~3 based on SL.
-	//modify_field(ipv6.dstAddr, ipv6_srh_segment_list[srv6_meta.segmentsLeft].sid);
-	modify_field(ipv6.dstAddr, ipv6_srh_segment_list[0].sid); // TODO: HACK: SL[0] is gNB addr
+	// Maybe we need table to call srv6_End_M_GTP6_E1~3 based on SL,
+	// But let's assume SL=1 when packet reaches SRGW and SL[0] is gNB addr.
+	modify_field(ipv6.dstAddr, ipv6_srh_segment_list[0].sid);
 	// Adjust IP length: UDP(8)+GTP(8) - ( SRH(8) + SEG(16)*(n+1) )
 	srv6_meta.ipv6_payloadLen = ipv6.payloadLen+8+8-8-16; // TODO
 	modify_field(ipv6.payloadLen, srv6_meta.ipv6_payloadLen);
@@ -321,7 +347,7 @@ action srv6_End_M_GTP6_E(srcAddr) {
 	add_header(udp);
 	add_header(gtpu);
 	// Although identical, you have to add gtpu_ipv6 and remove ipv6_inner
-	//  to help deparser to undertstand it would come after gtpu_ipv6 header.
+	// to help deparser to undertstand it would come after gtpu_ipv6 header.
 	add_header(gtpu_ipv6);
 	copy_header(gtpu_ipv6, ipv6_inner);
 	remove_header(ipv6_inner);

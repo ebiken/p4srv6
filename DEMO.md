@@ -99,7 +99,18 @@ table_add srv6_localsid srv6_T_Encaps_Red2 db8::1 => db8:1::4 db8:1::64 db8:1::1
 table_add srv6_localsid srv6_End_M_GTP6_E db8:1::64 => db8:1::2
 ```
 
+* Test End.DT6 with Linux T.Encaps.
+ping6 to db8:b::2 from host0(db8::1), and SRv6 packet with dstAddr db8::2 will be generated with seg6 entry configured with iproute2.
+Route lookup is not implemented (yet) so End DT6 is actually just poping SRH/SegmentList.
+```
+sudo ip netns exec host0 ip -6 route add db8:b::2/128 encap seg6 mode encap segs db8::2,c0be::2 via db8::2
+sudo ip netns exec host0 ip -6 route add db8:b::3/128 encap seg6 mode encap segs db8::2,c0be::2,c0be::3 via db8::2
+sudo ip netns exec host0 ip -6 route add db8:b::4/128 encap seg6 mode encap segs db8::2,c0be::2,c0be::3,c0be::4 via db8::2
 
+table_add fwd forward 0 => 1
+table_add fwd forward 1 => 0
+table_add srv6_localsid srv6_End_DT6 db8::2 => 
+```
 
 
 
