@@ -249,9 +249,9 @@ action srv6_T_Encaps_Red3(srcAddr, sid0, sid1, sid2) {
     ipv6_srh_insert(IP_PROTOCOLS_IPV6);
     modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
     add_header(ipv6_srh_segment_list[0]);
-    modify_field(ipv6_srh_segment_list[0].sid, sid1);
+    modify_field(ipv6_srh_segment_list[0].sid, sid2);
     add_header(ipv6_srh_segment_list[1]);
-    modify_field(ipv6_srh_segment_list[1].sid, sid2);
+    modify_field(ipv6_srh_segment_list[1].sid, sid1);
     modify_field(ipv6_srh.hdrExtLen, 4); // 2bytes*(number of seg)
     modify_field(ipv6_srh.segmentsLeft, 2);
     modify_field(ipv6_srh.lastEntry, 1);
@@ -262,6 +262,29 @@ action srv6_T_Encaps_Red3(srcAddr, sid0, sid1, sid2) {
 }
 
 ///// End.* functions
+
+// 4.1.  End: Endpoint
+// 1.   IF NH=SRH and SL > 0
+// 2.      decrement SL
+// 3.      update the IPv6 DA with SRH[SL]
+// 4.      FIB lookup on the updated DA                            ;; Ref1
+// 5.      forward accordingly to the matched entry                ;; Ref2
+// 6.   ELSE
+// 7.      drop the packet                                         ;; Ref3
+//FIXME: Having End0 and End1 is a durty hack to workaround p4c error for below.
+//  modify_field(ipv6.dstAddr, ipv6_srh_segment_list[ipv6_srh.segmentsLeft].sid);
+//  Most likely storing ipv6_srh.segmentsLeft in metadata to be used will solve this.
+action srv6_End0() {
+	//TODO: Implement PSP
+	//TODO: Flag packet drop if SL=0 (per Ref3)
+	subtract_from_field(ipv6_srh.segmentsLeft, 1);
+	modify_field(ipv6.dstAddr, ipv6_srh_segment_list[0].sid); // FIXME
+}
+action srv6_End1() {
+	subtract_from_field(ipv6_srh.segmentsLeft, 1);
+	modify_field(ipv6.dstAddr, ipv6_srh_segment_list[1].sid); // FIXME
+}
+
 // 4.10. End.DT6: Endpoint with decapsulation and specific IPv6 table lookup
 // 1. IF NH=SRH and SL > 0
 // 2.   drop the packet ;; Ref1
@@ -285,6 +308,27 @@ action srv6_End_DT6() {
 }
 
 ///// End.M.* functions
+action srv6_End_M_GTP6_D2(srcAddr, sid0, sid1) {
+	remove_header(udp);
+	remove_header(gtpu);
+    subtract_from_field(ipv6.payloadLen, 16); // UDP(8)+GTPU(8)
+    modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
+    add_to_field(ipv6.payloadLen, 8+16*1); // SRH(8)+Seg(16)*1
+    ipv6_srh_insert(0); // push srh with nextHeader=0
+	// TODO: set correct value for IPv6
+    modify_field(ipv6_srh.nextHeader, 41);
+	add_header(ipv6_srh_segment_list[0]);
+    modify_field(ipv6_srh_segment_list[0].sid, sid1);
+	// End.M.GTP6.D use seg0 as DA, but does NOT include it in the seg list.
+    modify_field(ipv6_srh.hdrExtLen, 2); // 2bytes*(number of seg)
+    modify_field(ipv6_srh.segmentsLeft, 1);
+    modify_field(ipv6_srh.lastEntry, 0); // sid0 is not included thus 1 smaller.
+	// 4. set the outer IPv6 SA to A
+    modify_field(ipv6.srcAddr, srcAddr);
+	// 5. set the outer IPv6 DA to S1
+    modify_field(ipv6.dstAddr, sid0); 
+	// 6. forward according to the first segment of the SRv6 Policy
+}
 action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
 	// 2. pop the IP, UDP and GTP headers
 	//   Size information in the original IP header is required.

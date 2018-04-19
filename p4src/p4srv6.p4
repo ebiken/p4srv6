@@ -51,8 +51,9 @@ table srv6_localsid {
 		srv6_T_Insert1; srv6_T_Insert2; srv6_T_Insert3;
 		srv6_T_Encaps2; srv6_T_Encaps1; srv6_T_Encaps3;
 		srv6_T_Encaps_Red2; srv6_T_Encaps_Red3;
+		srv6_End0; srv6_End1;
 		srv6_End_DT6;
-		srv6_End_M_GTP6_D3;
+		srv6_End_M_GTP6_D2; srv6_End_M_GTP6_D3;
 		srv6_End_M_GTP6_E;
 	}
 }
@@ -71,6 +72,6 @@ table gtpu_v6 {
 ///// CONTROL /////////////////////////////////////////////
 control ingress{
     apply(fwd);
-	apply(srv6_localsid);
 	apply(gtpu_v6);
+	apply(srv6_localsid);
 }

@@ -82,11 +82,9 @@ action gtpu_encap_v6(srcAddr, dstAddr, srcPort, dstPort, type, teid) {
 }
 
 action gtpu_decap_v6() {
+	copy_header(ipv6, gtpu_ipv6);
 	remove_header(udp);
 	remove_header(gtpu);
-	modify_field(ipv6.nextHdr, IP_PROTOCOLS_IPV6);
+	remove_header(gtpu_ipv6);
 }
-
-
-
 
