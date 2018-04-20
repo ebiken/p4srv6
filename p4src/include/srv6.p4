@@ -315,8 +315,8 @@ action srv6_End_M_GTP6_D2(srcAddr, sid0, sid1) {
     modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
     add_to_field(ipv6.payloadLen, 8+16*1); // SRH(8)+Seg(16)*1
     ipv6_srh_insert(0); // push srh with nextHeader=0
-	// TODO: set correct value for IPv6
-    modify_field(ipv6_srh.nextHeader, 41);
+	// TODO: support non-IPv6(41) payload
+    modify_field(ipv6_srh.nextHeader, IP_PROTOCOLS_IPV6);
 	add_header(ipv6_srh_segment_list[0]);
     modify_field(ipv6_srh_segment_list[0].sid, sid1);
 	// End.M.GTP6.D use seg0 as DA, but does NOT include it in the seg list.
@@ -341,13 +341,8 @@ action srv6_End_M_GTP6_D3(srcAddr, sid0, sid1, sid2) {
     modify_field(ipv6.nextHdr, IP_PROTOCOLS_SRV6);
     add_to_field(ipv6.payloadLen, 8+16*2); // SRH(8)+Seg(16)*2
     ipv6_srh_insert(0); // push srh with nextHeader=0
-	// TODO: set correct value for IPv6
-    modify_field(ipv6_srh.nextHeader, 41);
-    // modify_field(ipv6_srh.nextHeader, gtpu_payload.version);
-	// IP_PROTOCOLS_IPV4(4), IP_PROTOCOLS_IPV6(41)
-	//	(gtpu_payload.version && 4)*IP_PROTOCOLS_IPV4
-	//	+ (gtpu_payload.version && 6)*IP_PROTOCOLS_IPV6
-	//	);
+	// TODO: support non-IPv6(41) payload
+    modify_field(ipv6_srh.nextHeader, IP_PROTOCOLS_IPV6);
 	add_header(ipv6_srh_segment_list[0]);
     modify_field(ipv6_srh_segment_list[0].sid, sid2);
     add_header(ipv6_srh_segment_list[1]);
@@ -366,10 +361,10 @@ action srv6_End_M_GTP6_E(srcAddr) {
     // 2.    decrement SL
 	subtract_from_field(ipv6_srh.segmentsLeft, 1);
 	// store SRGW to meta data. dstAddr = SRGW::TEID
-	shift_right(srv6_meta.EndMGTP6E_SRGW, ipv6.dstAddr, 32);
+	// shift_right(srv6_meta.EndMGTP6E_SRGW, ipv6.dstAddr, 32);
 	modify_field(ipv6.srcAddr, srcAddr);
     // 3.    store SRH[SL] in variable new_DA
-	srv6_meta.segmentsLeft = ipv6_srh.segmentsLeft;
+	// srv6_meta.segmentsLeft = ipv6_srh.segmentsLeft;
     // 4.    store TEID in variable new_TEID
 	bit_and(srv6_meta.teid, 0x000000000000000000000000ffffffff, ipv6.dstAddr);
     // 5.    pop IP header and all it's extension headers
@@ -391,14 +386,14 @@ action srv6_End_M_GTP6_E(srcAddr) {
 	add_header(udp);
 	add_header(gtpu);
 	// Although identical, you have to add gtpu_ipv6 and remove ipv6_inner
-	// to help deparser to undertstand it would come after gtpu_ipv6 header.
+	// to help deparser to understand it would come after gtpu_ipv6 header.
 	add_header(gtpu_ipv6);
 	copy_header(gtpu_ipv6, ipv6_inner);
 	remove_header(ipv6_inner);
 
     modify_field(udp.srcPort, 1000); // TODO: generate from flow label, or random??
     modify_field(udp.dstPort, UDP_PORT_GTPU);
-	// ipv6.payloadLen does not incude ipv6 header. udp.len does include udp header.
+	// ipv6.payloadLen does not include ipv6 header. udp.len does include udp header.
 	// Thus, udp.length = ipv6.payloadLen.
     modify_field(udp.length_, ipv6.payloadLen); 
 	// TODO: update UDP checksum
