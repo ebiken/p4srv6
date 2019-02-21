@@ -26,20 +26,27 @@ Following Target Architectures are in my mind. Any contribution is more than wel
 * SmartNIC ??
 
 ## List of SRv6 functions of interest and status (a.k.a. Road Map)
-
+* Basic Switching Features (Layer 1/2/3)
+    * Available
+        * port forwarding table
+        * dmac table (Static Layer 2 forwarding)
+    * Planned near future
+        * VLAN
+        * Layer forwarding (FIBv4, FIBv6)
+        * mac learning agent (dynamic dmac table update based on smac)
 * [draft-ietf-dmm-srv6-mobile-uplane-03](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
     * Available
-	    * T.M.Tmap
-	    * End.M.GTP4.E
+        * T.M.Tmap
+        * End.M.GTP4.E
     * Planned near future
-	    * End.M.GTP6.D
-	    * End.M.GTP6.E
+        * End.M.GTP6.D
+        * End.M.GTP6.E
 * [draft-filsfils-spring-srv6-network-programming-07](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/)
     * Available
     	* T.Insert
         * End (without error handling)
     * Planned near future
         * PSP behavior
-	    * T.Encaps, T.Encaps.L2, T.Encaps.Red
+        * T.Encaps, T.Encaps.L2, T.Encaps.Red
     	* End.DT4, End.DT6
 
