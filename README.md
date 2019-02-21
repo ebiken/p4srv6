@@ -1,8 +1,8 @@
 # p4srv6 ... proto-typing SRv6 functions with P4 lang.
 
-> P4-16 version on v1model will be published in March 2019. Stay Tuned!!
-> Contents of this README.md is replaced with P4-16 version.
-> Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose.
+> P4-16 version on v1model will be published in March 2019. Stay Tuned!!  
+> Contents of this README.md is replaced with P4-16 version.  
+> Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose.  
 
 The objective of this project is to implement SRv6 functions still under discussion using P4 Lang to make running code available for testing and demo. Since there is no Open Source P4 switch implementation supporting SRv6, this should include basic switch features required to test SRv6.
 
@@ -19,7 +19,7 @@ This is written for v1model architecture and confirmed to run on [BMv2](https://
 I am trying to make as most code common among different architectures as possible.
 
 Following Target Architectures are in my mind. Any contribution is more than welcome. :)
-* v1model : [v1model.p4](https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4)
+* v1model : [v1model.p4](https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4) (Supported)
 * PSA : [psa.p4](https://github.com/p4lang/p4c/blob/master/p4include/psa.p4)
 * p4c-xdp : [xdp_model.p4](https://github.com/vmware/p4c-xdp/blob/master/p4include/xdp_model.p4) 
 * Tofino Model
