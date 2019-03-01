@@ -1,16 +1,17 @@
 # p4srv6 ... proto-typing SRv6 functions with P4 lang.
 
-> P4-16 version on v1model will be published in March 2019. Stay Tuned!!  
-> Contents of this README.md is replaced with P4-16 version.  
 > Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose.  
 
-The objective of this project is to implement SRv6 functions still under discussion using P4 Lang to make running code available for testing and demo. Since there is no Open Source P4 switch implementation supporting SRv6, this should include basic switch features required to test SRv6.
+The objective of this project is to implement SRv6 functions still under discussion using P4 Lang to make running code available for testing and demo.
+To support SRv6 functions with routing tables and topology requiring vlans etc, we plan to expand this code to include basic layer 2/3 switch features required to test SRv6 as well.
 
 This project was started as part of SRv6 Mobile User Plane POC conducted in [SRv6 consortium](https://seg6.net).
 Thus current priority is functions from [Mobile Uplane draft](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/).
 But planning to expand to general [SRv6 Network Programming](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/) functions for Edge Computing and Data Center use cases.
 
 Please raise issue with use case description if you want to any SRv6 functions not implemented yet.
+
+Note that this is still in very early development (alpha phase) and we expect pipeline structures including tables attributes and indirections would change while adding more features.
 
 ## P4 Target and Architecture
 
