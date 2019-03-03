@@ -70,8 +70,7 @@ $ cd p4-guide/bin/
 ```
 $ git clone https://github.com/ebiken/p4srv6.git
 $ cd p4srv6
->>> TODO: checkout correct checkin
-
+~/p4srv6$ git checkout v0.01
 ~/p4srv6$ p4c --target bmv2 --arch v1model p4src/switch.p4
 ```
 
