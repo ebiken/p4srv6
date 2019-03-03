@@ -163,8 +163,8 @@ Use tshark to confirm GTP encap/decap by Linux Kernel module is working
 
 $ tshark -i vtap11
 Capturing on 'vtap11'
-    1 0.000000000   172.99.0.1 Å® 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x198d, seq=1/256, ttl=64
-    2 0.050494478   172.99.0.2 Å® 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x198d, seq=1/256, ttl=64 (request in 1)
+    1 0.000000000   172.99.0.1 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x198d, seq=1/256, ttl=64
+    2 0.050494478   172.99.0.2 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x198d, seq=1/256, ttl=64 (request in 1)
 ```
 
 Config SRv6 tables : T.M.Tmap => END => End.M.GTP4.E
@@ -185,8 +185,8 @@ Use tshark to confirm GTP to SRv6 to GTP translation is working
 $ ip netns exec host1 ping 172.99.0.2
 
 $ sudo ip netns exec host1 tshark -i veth1
-    1 0.000000000   172.99.0.1 Å® 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x1b5f, seq=1/256, ttl=64
-    2 0.054819855   172.99.0.2 Å® 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x1b5f, seq=1/256, ttl=64 (request in 1)
+    1 0.000000000   172.99.0.1 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x1b5f, seq=1/256, ttl=64
+    2 0.054819855   172.99.0.2 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x1b5f, seq=1/256, ttl=64 (request in 1)
 
 $ tshark -i vtap11 -O ipv6
 Capturing on 'vtap11'
@@ -242,7 +242,7 @@ Internet Protocol Version 4, Src: 172.99.0.1, Dst: 172.99.0.2
 Internet Control Message Protocol
 
 $ sudo ip netns exec host2 tshark -i veth2
-    1 0.000000000   172.99.0.1 Å® 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x1b5f, seq=1/256, ttl=64
-    2 0.000073903   172.99.0.2 Å® 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x1b5f, seq=1/256, ttl=64 (request in 1)
+    1 0.000000000   172.99.0.1 172.99.0.2   GTP <ICMP> 134 Echo (ping) request  id=0x1b5f, seq=1/256, ttl=64
+    2 0.000073903   172.99.0.2 172.99.0.1   GTP <ICMP> 134 Echo (ping) reply    id=0x1b5f, seq=1/256, ttl=64 (request in 1)
 ```
 
