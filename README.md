@@ -27,27 +27,79 @@ Following Target Architectures are in my mind. Any contribution is more than wel
 * SmartNIC ??
 
 ## List of SRv6 functions of interest and status (a.k.a. Road Map)
+
+* Non functional design items
+
+| Item name | schedule |
+|-----------|----------|
+| BSID friendly table structure | future |
+
 * Basic Switching Features (Layer 1/2/3)
-    * Available
-        * port forwarding table
-        * dmac table (Static Layer 2 forwarding)
-    * Planned near future
-        * VLAN
-        * Layer forwarding (FIBv4, FIBv6)
-        * mac learning agent (dynamic dmac table update based on smac)
+
+| Feature | Schedule |
+|---------|----------|
+| Port Forwarding | DONE |
+| dmac table (static) | DONE |
+| VLAN (port) | April, 2019 |
+| VLAN (Tag) | future |
+| IPv4 forwarding (LPM) | May, 2019 |
+| IPv6 forwarding (LPM) | May, 2019 |
+| Host Interface (ping/arp) | future |
+| dmac (learning agent) | future |
+
+
 * [draft-ietf-dmm-srv6-mobile-uplane-03](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
-    * Available
-        * T.M.Tmap
-        * End.M.GTP4.E
-    * Planned near future
-        * End.M.GTP6.D
-        * End.M.GTP6.E
+
+| Function | schedule | description |
+|----------|----------|-------------|
+| Args.Mob.Session | | Consider with End.MAP, End.DT and End.DX |
+| End.MAP | | |
+| End.M.GTP6.D | future | GTP-U/IPv6 => SRv6 |
+| End.M.GTP6.E | future | SRv6 => GTP-U/IPv6 |
+| End.M.GTP4.E | DONE | SRv6 => GTP-U/IPv4 |
+| T.M.Tmap | DONE | GTP-U/IPv4 => SRv6 |
+| End.Limit | | Rate Limiting function |
+
 * [draft-filsfils-spring-srv6-network-programming-07](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/)
-    * Available
-    	* T.Insert
-        * End (without error handling)
-    * Planned near future
-        * PSP behavior
-        * T.Encaps, T.Encaps.L2, T.Encaps.Red
-    	* End.DT4, End.DT6
+
+Transit behaviors
+
+| Function | schedule | description |
+|----------|----------|-------------|
+| T | n/a | Transit behavior|
+| T.Insert | DONE | |
+| T.Insert.Red | DONE | |
+| T.Encaps | future | |
+| T.Encaps.Red | future | |
+| T.Encaps.L2 | future | |
+| T.Encaps.L2.Red | future | |
+
+Functions associated with a SID
+
+| Function | schedule | description |
+|----------|----------|-------------|
+| End | PARTIAL | without error handling |
+| End.X | April, 2019 | |
+| End.T | | |
+| End.DX2 (V) | | |
+| End.DT2 (U/M) | | |
+| End.DX6 | | |
+| End.DX4 | | |
+| End.DT6 | | |
+| End.DT4 | | |
+| End.DT46 | | |
+| End.B6.Insert | | |
+| End.B6.Insert.Red | | |
+| End.B6.Encaps | | |
+| End.B6.Encaps.Red | | |
+| End.BM | | |
+| End.S | | |
+
+Flavours
+
+| Function | schedule | description |
+|----------|----------|-------------|
+| PSP | May, 2019 | Penultimate Segment Pop |
+| USP | | Ultimate Segment Pop |
+| USD | | Ultimate Segment Decapsulation |
 
