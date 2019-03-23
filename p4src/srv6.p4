@@ -212,6 +212,46 @@ control SRv6(
         hdr.ipv6.dstAddr = sid1;
         cnt_srv6_t_udp.count();
     }
+// IETF104 HACKATHON : START
+    // Synthesize IPv6 SA/DA from GTP. DA will be the Last SID in SRH SID List if SRH was inserted.
+    action t_m_tmap_ietf104_synthesize(bit<32> iw_prefix, bit<64> src_prefix) {
+        hdr.ether.etherType = ETH_P_IPV6;
+        hdr.ipv6.setValid();
+        hdr.ipv6.version = 4w6;
+        hdr.ipv6.trafficClass = 8w0;
+        hdr.ipv6.flowLabel = 20w0;
+        hdr.ipv6.payloadLen = hdr.ipv4.totalLen - 16w36;
+        hdr.ipv6.nextHdr = 8w4; // User PDU. Should be configurable.
+        hdr.ipv6.hopLimit = hdr.ipv4.ttl;
+        // Synthesize IPv6 SA from GTPU packet
+        hdr.ipv6.srcAddr[127:64] = src_prefix; // Local SRGW Src Prefix (64)
+        hdr.ipv6.srcAddr[63:32] = hdr.ipv4.srcAddr; //IPv4 SA (32)
+        hdr.ipv6.srcAddr[31:16] = hdr.udp.srcPort; // UDP Src Port (16)
+        hdr.ipv6.srcAddr[15:0] = 16w0; // Reserved
+        // Synthesize Last SID (IPv6 DA) from GTPU packet
+        hdr.ipv6.dstAddr[127:96] = iw_prefix; // GTP SRv6 InterWork prefix
+        hdr.ipv6.dstAddr[95:64] = hdr.ipv4.dstAddr;
+        hdr.ipv6.dstAddr[63:56] = 8w0; // GTP QFI/RQI (0 for now)
+        hdr.ipv6.dstAddr[55:24] = hdr.gtpu.teid;
+        hdr.ipv6.dstAddr[23:0] = 24w0; // Reserved
+        // remove IPv4/UDP/GTPU headers
+        hdr.gtpu.setInvalid();
+        hdr.udp.setInvalid();
+        hdr.ipv4.setInvalid();
+    }
+    action t_m_tmap_ietf104(bit<32> iw_prefix, bit<64> src_prefix) {
+        t_m_tmap_ietf104_synthesize(iw_prefix, src_prefix);
+        cnt_srv6_t_udp.count();
+    }
+    action t_m_tmap_ietf104_sid1(bit<32> iw_prefix, bit<64> src_prefix,
+            bit<128> sid1) {
+        t_m_tmap_ietf104_synthesize(iw_prefix, src_prefix);
+        push_srh_sid2(hdr.ipv6.nextHdr, 1, sid1, hdr.ipv6.dstAddr);
+        hdr.ipv6.nextHdr = IPPROTO_ROUTE;
+        hdr.ipv6.dstAddr = sid1;
+        cnt_srv6_t_udp.count();
+    }
+// IETF104 HACKATHON : END
     action srv6_debug_v6() {
         //debug
         cnt_srv6_t_v6.count();
@@ -256,6 +296,8 @@ control SRv6(
             t_m_tmap_sid1;  // 2 SIDs (DA + sid1)
             t_m_tmap_sid2;  // 3 SIDs (DA + sid1/2)
             t_m_tmap_sid3;  // 4 SIDs (DA + sid1/2/3)
+            t_m_tmap_ietf104;
+            t_m_tmap_ietf104_sid1;
         }
         const default_action = NoAction;
         counters = cnt_srv6_t_udp;
@@ -311,6 +353,46 @@ control SRv6(
 
         cnt_srv6_e.count();
     }
+// IETF104 HACKATHON : START
+    action end_m_gtp4_e_ietf104() {
+        hdr.ether.etherType = ETH_P_IPV4;
+        hdr.ipv4.setValid();
+        hdr.ipv4.version = 4w4;
+        hdr.ipv4.ihl = 4w5;
+        hdr.ipv4.diffserv = 8w0;
+        // IPv6 Payload Length + IPv4 Header(20) + UDP(8) + GTP(8)
+        hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36 - 16w40;
+        //DEBUG hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36;
+        hdr.ipv4.identification = 16w0;
+        hdr.ipv4.flags = 3w0;
+        hdr.ipv4.fragOffset = 13w0;
+        hdr.ipv4.ttl = hdr.ipv6.hopLimit;
+        hdr.ipv4.protocol = IPPROTO_UDP;
+        // IPv4 header checksum will be calculated later.
+        hdr.ipv4.srcAddr = hdr.ipv6.srcAddr[63:32]; // ietf104
+        hdr.ipv4.dstAddr = hdr.ipv6.dstAddr[95:64];
+        hdr.udp.setValid();
+        hdr.udp.srcPort = hdr.ipv6.srcAddr[31:16]; // ietf104
+        hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152
+        hdr.udp.length = hdr.ipv6.payloadLen + 16w16 -16w40; // Payload + UDP(8) + GTP(8)
+        //DEBUG hdr.udp.length = hdr.ipv6.payloadLen + 16w16; // Payload + UDP(8) + GTP(8)
+        hdr.gtpu.setValid();
+        hdr.gtpu.version = 3w1;
+        hdr.gtpu.pt = 1w1;
+        hdr.gtpu.reserved = 1w0;
+        hdr.gtpu.e = 1w0; // No Extention Header
+        hdr.gtpu.s = 1w0; // No Sequence number
+        hdr.gtpu.pn = 1w0;
+        hdr.gtpu.messageType = GTPV1_GPDU; // 8w255
+        hdr.gtpu.messageLen = hdr.ipv6.payloadLen; // Same as the original IPv6 Payload
+        hdr.gtpu.teid = hdr.ipv6.dstAddr[55:24]; // ietf104
+        // remove IPv6/SRH headers
+        remove_srh_header();
+        hdr.ipv6.setInvalid();
+
+        cnt_srv6_e.count();
+    }
+// IETF104 HACKATHON : END
     table srv6_end { // localsid
         key = {
             hdr.ipv6.dstAddr : ternary;
@@ -326,6 +408,7 @@ control SRv6(
 
             // SRv6 Mobile Userplane : draft-ietf-dmm-srv6-mobile-uplane
             end_m_gtp4_e;           // End.M.GTP4.E
+            end_m_gtp4_e_ietf104;   // End.M.GTP4.E IETF104 hackathon
         }
         const default_action = NoAction;
         counters = cnt_srv6_e;
