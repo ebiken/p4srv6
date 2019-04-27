@@ -32,7 +32,8 @@ libgtpnl is a tool to configure GTP Kernel module via netlink.
 ```
 > Install prerequisites
 
-$ sudo apt install libmnl-dev autoconf libtool
+$ sudo apt install libmnl-dev libnftnl-dev autoconf libtool
+$ sudo ldconfig -v
 
 > Clone source code, configure and build
 
