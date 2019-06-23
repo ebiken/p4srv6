@@ -143,9 +143,9 @@ control SwitchIngress(
             inout standard_metadata_t st_md) {
 
     // Instantiate controlls
+    PortFwd() port_fwd;
     SRv6() srv6;
     L2Fwd(1024) l2fwd;
-    PortFwd() port_fwd;
 
     // Local MAC address. Apply Layer 3 tables when hit.
     action local_mac_hit() {}
@@ -165,8 +165,11 @@ control SwitchIngress(
 
         mark_to_drop(); // set default action to drop to avoid unexpected packets going out.
 
+        // policy L1 (port) forwarding table useful untill l2fwd is implemented.
+        port_fwd.apply(st_md.ingress_port, st_md.egress_spec);
+
         // apply srv6 without local_mac validation for quick testing
-        srv6.apply(hdr, user_md);
+        srv6.apply(hdr, user_md, st_md.ingress_port, st_md.egress_spec);
 
         // switch(local_mac.apply().action_run) {
         //    local_mac_hit : {
@@ -186,7 +189,6 @@ control SwitchIngress(
         //   In v1model, egress_spec is used to specify output port in Ingress.
         //   egress_port is read only and only used in Egress pipeline.
         l2fwd.apply(hdr.ether.dstAddr, user_md.ig_md, st_md.egress_spec);
-        port_fwd.apply(st_md.ingress_port, st_md.egress_spec);
     }
 }
 

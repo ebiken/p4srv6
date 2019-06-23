@@ -21,8 +21,10 @@
 #define _SRV6_
 
 control SRv6(
-            inout Header hdr,
-            inout UserMetadata user_md) {
+    inout Header hdr,
+    inout UserMetadata user_md,
+    in PortId_t in_port,
+    inout PortId_t egress_port) {
 
     // Counters for actions in transit and end (localsid) behaviors.
 #ifdef _V1_MODEL_P4_
@@ -31,6 +33,7 @@ control SRv6(
     direct_counter(CounterType.packets_and_bytes) cnt_srv6_t_v6;
     direct_counter(CounterType.packets_and_bytes) cnt_srv6_t_udp;
     direct_counter(CounterType.packets_and_bytes) cnt_srv6_e;
+    direct_counter(CounterType.packets_and_bytes) cnt_srv6_e_iif;
 #endif /* _V1_MODEL_P4_ */
 
     /*** HELPER ACTIONS *******************************************************/
@@ -311,6 +314,33 @@ control SRv6(
 
         cnt_srv6_e.count();
     }
+    // https://tools.ietf.org/html/draft-xuclad-spring-sr-service-programming-02#section-6.4.1
+    // 6.4.1.  SRv6 masquerading proxy pseudocode
+    // Masquerading: Upon receiving a packet destined for S, where S is an
+    // IPv6 masquerading proxy segment, a node N processes it as follows.
+    // 1.   IF NH=SRH & SL > 0 THEN
+    // 2.       Update the IPv6 DA with SRH[0]
+    // 3.       Forward the packet on IFACE-OUT
+    // 4.   ELSE
+    // 5.       Drop the packet
+    action end_am(PortId_t oif, EthernetAddress dmac) {
+        // TODO: "NH=SRH & SL > 0" should be validated as part of match rule
+        hdr.ipv6.dstAddr = hdr.srh_sid[0].sid;
+        hdr.ether.dstAddr = dmac;
+        egress_port = oif;
+    }
+    // De-masquerading: Upon receiving a non-link-local IPv6 packet on
+    // IFACE-IN, a node N processes it as follows.
+    // 1.   IF NH=SRH & SL > 0 THEN
+    // 2.       Decrement SL
+    // 3.       Update the IPv6 DA with SRH[SL]                      ;; Ref1
+    // 4.       Lookup DA in appropriate table and proceed accordingly
+    action end_am_d(PortId_t oif) {
+        // TODO: "NH=SRH & SL > 0" should be validated as part of match rule
+        hdr.srh.segmentsLeft = hdr.srh.segmentsLeft - 1;
+        hdr.ipv6.dstAddr = user_md.srv6.nextsid;
+        egress_port = oif; // TODO: Workaround untill L2Fwd() and L3 support
+    }
     table srv6_end { // localsid
         key = {
             hdr.ipv6.dstAddr : ternary;
@@ -326,10 +356,27 @@ control SRv6(
 
             // SRv6 Mobile Userplane : draft-ietf-dmm-srv6-mobile-uplane
             end_m_gtp4_e;           // End.M.GTP4.E
+
+            // Proxy Functions : draft-xuclad-spring-sr-service-programming
+            end_am;
         }
         const default_action = NoAction;
         counters = cnt_srv6_e;
     }
+    table srv6_end_iif { // Input Interface based SRv6 End.* table
+        key = {
+            in_port : exact; // ingress phy port
+            // hdr.srh.isValid() : ternary;
+        }
+        actions = {
+            @defaultonly NoAction;
+            // Proxy Functions : draft-xuclad-spring-sr-service-programming
+            end_am_d;
+        }
+        const default_action = NoAction;
+        counters = cnt_srv6_e_iif;
+    }
+
 
     /*** HELPER TABLE TO SET NEXT SID *****************************************/
     action set_nextsid_1() {
@@ -368,8 +415,10 @@ control SRv6(
             srv6_set_nextsid.apply();
         }
         if (hdr.ipv6.isValid()) {
-            if(!srv6_end.apply().hit) {
-                srv6_transit_v6.apply();
+            if(!srv6_end_iif.apply().hit) {
+                if(!srv6_end.apply().hit) {
+                    srv6_transit_v6.apply();
+                }
             }
         } else if (hdr.ipv4.isValid()) {
             if(!srv6_transit_udp.apply().hit) {
