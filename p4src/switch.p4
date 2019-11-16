@@ -163,7 +163,7 @@ control SwitchIngress(
 
     apply {
 
-        mark_to_drop(); // set default action to drop to avoid unexpected packets going out.
+        mark_to_drop(st_md); // set default action to drop to avoid unexpected packets going out.
 
         // policy L1 (port) forwarding table useful untill l2fwd is implemented.
         port_fwd.apply(st_md.ingress_port, st_md.egress_spec);
