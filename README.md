@@ -40,25 +40,30 @@ Following Target Architectures are in my mind. Any contribution is more than wel
 |---------|----------|
 | Port Forwarding | DONE |
 | dmac table (static) | DONE |
-| VLAN (port) | April, 2019 |
+| VLAN (port) | Dec, 2019 |
 | VLAN (Tag) | future |
-| IPv4 forwarding (LPM) | May, 2019 |
-| IPv6 forwarding (LPM) | May, 2019 |
+| IPv4 forwarding (LPM) | Dec, 2019 |
+| IPv6 forwarding (LPM) | Dec, 2019 |
 | Host Interface (ping/arp) | future |
 | dmac (learning agent) | future |
 
+* [draft-ietf-dmm-srv6-mobile-uplane-06](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
 
-* [draft-ietf-dmm-srv6-mobile-uplane-03](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
+Updates from `-03` to `-06` => Nov, 2019
 
 | Function | schedule | description |
 |----------|----------|-------------|
 | Args.Mob.Session | | Consider with End.MAP, End.DT and End.DX |
 | End.MAP | | |
-| End.M.GTP6.D | future | GTP-U/IPv6 => SRv6 |
-| End.M.GTP6.E | future | SRv6 => GTP-U/IPv6 |
+| End.M.GTP6.D | Nov, 2019 | GTP-U/IPv6 => SRv6 |
+| End.M.GTP6.E | Nov, 2019 | SRv6 => GTP-U/IPv6 |
 | End.M.GTP4.E | DONE | SRv6 => GTP-U/IPv4 |
-| T.M.Tmap | DONE | GTP-U/IPv4 => SRv6 |
+| T.M.Tmap => T.M.GTP4.D | DONE => Nov, 2019 | GTP-U/IPv4 => SRv6 |
 | End.Limit | | Rate Limiting function |
+
+* [draft-murakami-dmm-user-plane-message-mapping](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-mapping/)
+
+Nov, 2019
 
 * [draft-filsfils-spring-srv6-network-programming-07](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/)
 
