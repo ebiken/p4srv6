@@ -184,14 +184,14 @@ control SRv6(
     // TODO: T.M.Tmap: Support PREFIX longer than 32bits.
     // * In some environment (ex: private LTE) one might not be able to alocate
     // * prefix longer than 32bits. Experiment and feedback to IETF DMM ML.
-    action t_m_tmap(bit<32> iw_prefix, IPv6Address ipv6_src_addr) {
+    action t_m_gtp4_d(bit<32> iw_prefix, IPv6Address ipv6_src_addr) {
         t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
         cnt_srv6_t_udp.count();
     }
     // T.M.Tmap is not capable of adding SRH&SID in draft-ietf-dmm-srv6-mobile-uplane-03
-    // * t_m_tmap_sid1() action is capable of adding SRH&SID. Report result to IETF DMM
+    // * t_m_gtp4_d_sid1() action is capable of adding SRH&SID. Report result to IETF DMM
     // * mailing list ML to discuss if we should extend or add another behavior.
-    action t_m_tmap_sid1(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+    action t_m_gtp4_d_sid1(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
             bit<128> sid1) {
         t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
         push_srh_sid2(hdr.ipv6.nextHdr, 1, sid1, hdr.ipv6.dstAddr);
@@ -199,7 +199,7 @@ control SRv6(
         hdr.ipv6.dstAddr = sid1;
         cnt_srv6_t_udp.count();
     }
-    action t_m_tmap_sid2(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+    action t_m_gtp4_d_sid2(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
             bit<128> sid1, bit<128> sid2) {
         t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
         push_srh_sid3(hdr.ipv6.nextHdr, 2, sid1, sid2, hdr.ipv6.dstAddr);
@@ -207,7 +207,7 @@ control SRv6(
         hdr.ipv6.dstAddr = sid1;
         cnt_srv6_t_udp.count();
     }
-    action t_m_tmap_sid3(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+    action t_m_gtp4_d_sid3(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
             bit<128> sid1, bit<128> sid2, bit<128> sid3) {
         t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
         push_srh_sid4(hdr.ipv6.nextHdr, 3, sid1, sid2, sid3, hdr.ipv6.dstAddr);
@@ -255,10 +255,10 @@ control SRv6(
         actions = {
             @defaultonly NoAction;
             // SRv6 Mobile Userplane : draft-ietf-dmm-srv6-mobile-uplane
-            t_m_tmap;
-            t_m_tmap_sid1;  // 2 SIDs (DA + sid1)
-            t_m_tmap_sid2;  // 3 SIDs (DA + sid1/2)
-            t_m_tmap_sid3;  // 4 SIDs (DA + sid1/2/3)
+            t_m_gtp4_d;
+            t_m_gtp4_d_sid1;  // 2 SIDs (DA + sid1)
+            t_m_gtp4_d_sid2;  // 3 SIDs (DA + sid1/2)
+            t_m_gtp4_d_sid3;  // 4 SIDs (DA + sid1/2/3)
         }
         const default_action = NoAction;
         counters = cnt_srv6_t_udp;
