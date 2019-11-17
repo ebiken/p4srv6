@@ -74,6 +74,7 @@ parser SwitchParser(
     }
     state parse_gtpu {
         pkt.extract(hdr.gtpu);
+        user_md.srv6.gtpv1_type = hdr.gtpu.messageType;
         bit<4> ip_ver = pkt.lookahead<bit<4>>();
         transition select(ip_ver) {
             4w4 : parse_inner_ipv4;
@@ -104,6 +105,7 @@ parser SwitchParser(
 /*** PARSE SRH (SRv6) ***/
     state parse_srh {
         pkt.extract(hdr.srh);
+        user_md.srv6.gtp_message_type = hdr.srh.gtpMessageType;
         transition parse_srh_sid_0;
     }
 #define PARSE_SRH_SID(curr, next)               \

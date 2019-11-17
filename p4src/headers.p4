@@ -112,6 +112,7 @@ header ICMP_h {
 
 // Segment Routing Extension Header (SRH) based on version 15
 // https://datatracker.ietf.org/doc/draft-ietf-6man-segment-routing-header/
+// Tag field extended based on draft-murakami-dmm-user-plane-message-encoding-00
 header SRH_h {
     bit<8> nextHdr;
     bit<8> hdrExtLen;
@@ -119,7 +120,8 @@ header SRH_h {
     bit<8> segmentsLeft;
     bit<8> lastEntry;
     bit<8> flags;
-    bit<16> tag;
+    bit<12> tag;
+    bit<4> gtpMessageType; // least significant 4 bits of tag field
 }
 
 header SRH_SegmentList_h {
@@ -131,6 +133,7 @@ header SRH_SegmentList_h {
 typedef bit<8> GTPv1Type;
 const GTPv1Type GTPV1_ECHO    = 1; // Echo Request
 const GTPv1Type GTPV1_ECHORES = 2; // Echo Response
+const GTPv1Type GTPV1_ERROR = 26; // Error Indication
 const GTPv1Type GTPV1_END  = 254; // End Marker
 const GTPv1Type GTPV1_GPDU = 255; // G-PDU
 
@@ -145,6 +148,12 @@ header GTPU_h {
     GTPv1Type messageType;
     bit<16> messageLen;
     bit<32> teid;          // Tunnel endpoint id
+// TODO: support case with no option field (e,s,pn are all zero)
+// }
+// header GTPU_OPTION_h {
+    bit<16> seq;           // Sequence Number
+    bit<8>  npdu;          // N-PDU number
+    bit<8>  nextExtHdr;  // Next Extention Header Type
 }
 
 // Structure of parsed headers are defined in the main file (ex: switch.p4) to
