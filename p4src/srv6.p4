@@ -167,7 +167,7 @@ control SRv6(
         hdr.ipv6.version = 4w6;
         hdr.ipv6.trafficClass = 8w0;
         hdr.ipv6.flowLabel = 20w0;
-        hdr.ipv6.payloadLen = hdr.ipv4.totalLen - 16w36;
+        hdr.ipv6.payloadLen = hdr.ipv4.totalLen - 16w40;
         hdr.ipv6.nextHdr = 8w4; // TODO: User PDU. Should be configurable.
         hdr.ipv6.hopLimit = hdr.ipv4.ttl;
         // Synthesize IPv6 SA from GTP packet
@@ -293,8 +293,9 @@ control SRv6(
         hdr.ipv4.version = 4w4;
         hdr.ipv4.ihl = 4w5;
         hdr.ipv4.diffserv = 8w0;
-        // IPv6 Payload Length + IPv4 Header(20) + UDP(8) + GTP(8)
-        hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36 - 16w40;
+        // IPv6 Payload Length - length of extention Headers + IPv4 Header(20) + UDP(8) + GTP(12)
+        // length of ext headers = SRH(8) + hdr.srh.hdrExtLen*8
+        hdr.ipv4.totalLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w40;
         //DEBUG hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36;
         hdr.ipv4.identification = 16w0;
         hdr.ipv4.flags = 3w0;
@@ -307,18 +308,22 @@ control SRv6(
         hdr.udp.setValid();
         hdr.udp.srcPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
         hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
-        hdr.udp.length = hdr.ipv6.payloadLen + 16w16 -16w40; // Payload + UDP(8) + GTP(8)
+        hdr.udp.length = hdr.ipv6.payloadLen + 16w20 -16w40; // Payload + UDP(8) + GTP(12)
         //DEBUG hdr.udp.length = hdr.ipv6.payloadLen + 16w16; // Payload + UDP(8) + GTP(8)
         hdr.gtpu.setValid();
         hdr.gtpu.version = 3w1;
         hdr.gtpu.pt = 1w1;
         hdr.gtpu.reserved = 1w0;
         hdr.gtpu.e = 1w0; // No Extention Header
-        hdr.gtpu.s = 1w0; // No Sequence number
+        hdr.gtpu.s = 1w1; // YES Sequence number
         hdr.gtpu.pn = 1w0;
         hdr.gtpu.messageType = GTPV1_GPDU; // 8w255 overwritten based on gtp_message_type
-        hdr.gtpu.messageLen = hdr.ipv6.payloadLen; // Same as the original IPv6 Payload
+        // IPv6 Payload length - length of extention headers + GTP optional headers(4)
+        hdr.gtpu.messageLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w4; 
         hdr.gtpu.teid = hdr.ipv6.dstAddr[55:24]; //TODO: make prefix length configurable
+        hdr.gtpu.seq = 16w0; // TODO: fetch from SID (Args.mob)
+        hdr.gtpu.npdu = 8w0;
+        hdr.gtpu.nextExtHdr = 8w0;
         // remove IPv6/SRH headers
         remove_srh_header();
         hdr.ipv6.setInvalid();
