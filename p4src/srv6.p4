@@ -161,55 +161,66 @@ control SRv6(
     //action t_encaps_l2_sid1(IPv6Address ipv6src, bit<128> sid1) {
     //}
 
-    action t_m_replace_ipv4_to_ipv6(bit<32> iw_prefix, IPv6Address ipv6_src_addr) {
+    action t_m_gtp4_d_synthesize(bit<32> iw_prefix, bit<64> src_prefix) { // TODO: make src_prefix length configurable
         hdr.ether.etherType = ETH_P_IPV6;
         hdr.ipv6.setValid();
         hdr.ipv6.version = 4w6;
         hdr.ipv6.trafficClass = 8w0;
         hdr.ipv6.flowLabel = 20w0;
-        hdr.ipv6.payloadLen = hdr.ipv4.totalLen - 16w36;
+        hdr.ipv6.payloadLen = hdr.ipv4.totalLen - 16w40;
         hdr.ipv6.nextHdr = 8w4; // TODO: User PDU. Should be configurable.
         hdr.ipv6.hopLimit = hdr.ipv4.ttl;
-        hdr.ipv6.srcAddr = ipv6_src_addr;
-        // Generate SID based on GTPU packet.
-        hdr.ipv6.dstAddr[31:0] = hdr.gtpu.teid;
-        hdr.ipv6.dstAddr[63:32] = hdr.ipv4.srcAddr;
-        hdr.ipv6.dstAddr[95:64] = hdr.ipv4.dstAddr;
+        // Synthesize IPv6 SA from GTP packet
+        hdr.ipv6.srcAddr[127:64] = src_prefix; // Local SRGW Src Prefix (64)
+        hdr.ipv6.srcAddr[63:32] = hdr.ipv4.srcAddr; //IPv4 SA (32)
+        hdr.ipv6.srcAddr[31:0] = 32w0; // Reserved
+        // Synthesize Last SID (IPv6 DA) from GTP packet
         hdr.ipv6.dstAddr[127:96] = iw_prefix; // GTP SRv6 InterWork prefix
+        hdr.ipv6.dstAddr[95:64] = hdr.ipv4.dstAddr;
+        // TODO: Args.Mob.Session
+        hdr.ipv6.dstAddr[63:56] = 8w0; // GTP QFI/RQI (0 for now)
+        hdr.ipv6.dstAddr[55:24] = hdr.gtpu.teid;
+        hdr.ipv6.dstAddr[23:0] = 24w0; // Padding
         // remove IPv4/UDP/GTPU headers
         hdr.gtpu.setInvalid();
         hdr.udp.setInvalid();
         hdr.ipv4.setInvalid();
     }
-    // TODO: T.M.Tmap: Support PREFIX longer than 32bits.
+    // TODO: T.M.GTP4.D: Make src_prefix and iw_prefix configurable.
     // * In some environment (ex: private LTE) one might not be able to alocate
     // * prefix longer than 32bits. Experiment and feedback to IETF DMM ML.
-    action t_m_tmap(bit<32> iw_prefix, IPv6Address ipv6_src_addr) {
-        t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
+    action t_m_gtp4_d(bit<32> iw_prefix, bit<64> src_prefix) {
+        t_m_gtp4_d_synthesize(iw_prefix, src_prefix);
         cnt_srv6_t_udp.count();
     }
-    // T.M.Tmap is not capable of adding SRH&SID in draft-ietf-dmm-srv6-mobile-uplane-03
-    // * t_m_tmap_sid1() action is capable of adding SRH&SID. Report result to IETF DMM
-    // * mailing list ML to discuss if we should extend or add another behavior.
-    action t_m_tmap_sid1(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+// TODO: Insert SRH with one SID if GTP-U Message Type != 255(G-PDU)
+//       This will be controlled by matching MessageType in Match Action Table.
+// action t_m_gttp4_sid0(bit<32> iw_prefix, bit<64> src_prefix) {
+//     t_m_gtp4_d_synthesize(iw_prefix, src_prefix);
+//     push_srh_sid1(hdr.ipv6.nextHdr, 0, hdr.ipv6.dstAddr);
+//     hdr.ipv6.nextHdr = IPPROTO_ROUTE;
+//     cnt_srv6_t_udp.count();
+// }
+    // TODO: draft-ietf-dmm-srv6-mobile-uplane-03 does not define T.M.GTP4.D how to adding SRH&SID for T.M.GTP4.D. VPP implement this by adding SID List if synthesized SID match binding SID defining SR policy with SID List to insert. Consider separating the additional SID LIST insertion to SR policy.
+    action t_m_gtp4_d_sid1(bit<32> iw_prefix, bit<64> src_prefix,
             bit<128> sid1) {
-        t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
+        t_m_gtp4_d_synthesize(iw_prefix, src_prefix);
         push_srh_sid2(hdr.ipv6.nextHdr, 1, sid1, hdr.ipv6.dstAddr);
         hdr.ipv6.nextHdr = IPPROTO_ROUTE;
         hdr.ipv6.dstAddr = sid1;
         cnt_srv6_t_udp.count();
     }
-    action t_m_tmap_sid2(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+    action t_m_gtp4_d_sid2(bit<32> iw_prefix, bit<64> src_prefix,
             bit<128> sid1, bit<128> sid2) {
-        t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
+        t_m_gtp4_d_synthesize(iw_prefix, src_prefix);
         push_srh_sid3(hdr.ipv6.nextHdr, 2, sid1, sid2, hdr.ipv6.dstAddr);
         hdr.ipv6.nextHdr = IPPROTO_ROUTE;
         hdr.ipv6.dstAddr = sid1;
         cnt_srv6_t_udp.count();
     }
-    action t_m_tmap_sid3(bit<32> iw_prefix, IPv6Address ipv6_src_addr,
+    action t_m_gtp4_d_sid3(bit<32> iw_prefix, bit<64> src_prefix,
             bit<128> sid1, bit<128> sid2, bit<128> sid3) {
-        t_m_replace_ipv4_to_ipv6(iw_prefix, ipv6_src_addr);
+        t_m_gtp4_d_synthesize(iw_prefix, src_prefix);
         push_srh_sid4(hdr.ipv6.nextHdr, 3, sid1, sid2, sid3, hdr.ipv6.dstAddr);
         hdr.ipv6.nextHdr = IPPROTO_ROUTE;
         hdr.ipv6.dstAddr = sid1;
@@ -255,10 +266,10 @@ control SRv6(
         actions = {
             @defaultonly NoAction;
             // SRv6 Mobile Userplane : draft-ietf-dmm-srv6-mobile-uplane
-            t_m_tmap;
-            t_m_tmap_sid1;  // 2 SIDs (DA + sid1)
-            t_m_tmap_sid2;  // 3 SIDs (DA + sid1/2)
-            t_m_tmap_sid3;  // 4 SIDs (DA + sid1/2/3)
+            t_m_gtp4_d;
+            t_m_gtp4_d_sid1;  // 2 SIDs (DA + sid1)
+            t_m_gtp4_d_sid2;  // 3 SIDs (DA + sid1/2)
+            t_m_gtp4_d_sid3;  // 4 SIDs (DA + sid1/2/3)
         }
         const default_action = NoAction;
         counters = cnt_srv6_t_udp;
@@ -282,8 +293,9 @@ control SRv6(
         hdr.ipv4.version = 4w4;
         hdr.ipv4.ihl = 4w5;
         hdr.ipv4.diffserv = 8w0;
-        // IPv6 Payload Length + IPv4 Header(20) + UDP(8) + GTP(8)
-        hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36 - 16w40;
+        // IPv6 Payload Length - length of extention Headers + IPv4 Header(20) + UDP(8) + GTP(12)
+        // length of ext headers = SRH(8) + hdr.srh.hdrExtLen*8
+        hdr.ipv4.totalLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w40;
         //DEBUG hdr.ipv4.totalLen = hdr.ipv6.payloadLen + 16w36;
         hdr.ipv4.identification = 16w0;
         hdr.ipv4.flags = 3w0;
@@ -291,23 +303,27 @@ control SRv6(
         hdr.ipv4.ttl = hdr.ipv6.hopLimit;
         hdr.ipv4.protocol = IPPROTO_UDP;
         // IPv4 header checksum will be calculated later.
-        hdr.ipv4.srcAddr = hdr.ipv6.dstAddr[63:32];
+        hdr.ipv4.srcAddr = hdr.ipv6.srcAddr[63:32];
         hdr.ipv4.dstAddr = hdr.ipv6.dstAddr[95:64];
         hdr.udp.setValid();
-        hdr.udp.srcPort = UDP_PORT_GTPU; // 16w2152
-        hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152
-        hdr.udp.length = hdr.ipv6.payloadLen + 16w16 -16w40; // Payload + UDP(8) + GTP(8)
+        hdr.udp.srcPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
+        hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
+        hdr.udp.length = hdr.ipv6.payloadLen + 16w20 -16w40; // Payload + UDP(8) + GTP(12)
         //DEBUG hdr.udp.length = hdr.ipv6.payloadLen + 16w16; // Payload + UDP(8) + GTP(8)
         hdr.gtpu.setValid();
         hdr.gtpu.version = 3w1;
         hdr.gtpu.pt = 1w1;
         hdr.gtpu.reserved = 1w0;
         hdr.gtpu.e = 1w0; // No Extention Header
-        hdr.gtpu.s = 1w0; // No Sequence number
+        hdr.gtpu.s = 1w1; // YES Sequence number
         hdr.gtpu.pn = 1w0;
-        hdr.gtpu.messageType = GTPV1_GPDU; // 8w255
-        hdr.gtpu.messageLen = hdr.ipv6.payloadLen; // Same as the original IPv6 Payload
-        hdr.gtpu.teid = hdr.ipv6.dstAddr[31:0];
+        hdr.gtpu.messageType = GTPV1_GPDU; // 8w255 overwritten based on gtp_message_type
+        // IPv6 Payload length - length of extention headers + GTP optional headers(4)
+        hdr.gtpu.messageLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w4; 
+        hdr.gtpu.teid = hdr.ipv6.dstAddr[55:24]; //TODO: make prefix length configurable
+        hdr.gtpu.seq = 16w0; // TODO: fetch from SID (Args.mob)
+        hdr.gtpu.npdu = 8w0;
+        hdr.gtpu.nextExtHdr = 8w0;
         // remove IPv6/SRH headers
         remove_srh_header();
         hdr.ipv6.setInvalid();
@@ -410,18 +426,60 @@ control SRv6(
             (4) : set_nextsid_4();
         }
     }
+// draft-murakami-dmm-user-plane-message-encoding-00
+// Bit 0 [B0]: End Marker
+// Bit 1 [B1]: Error Indication
+// Bit 2 [B2]: Echo Request
+// Bit 3 [B3]: Echo Reply
+    action set_gtpu_type(bit<8> type) {
+        hdr.gtpu.messageType = type;
+    }
+    action set_srv6_GTPV1_END() {
+        hdr.srh.gtpMessageType = 1;
+    }
+    action set_srv6_GTPV1_ERROR() {
+        hdr.srh.gtpMessageType = 2;
+    }
+    action set_srv6_GTPV1_ECHO() {
+        hdr.srh.gtpMessageType = 4;
+    }
+    action set_srv6_GTPV1_ECHORES() {
+        hdr.srh.gtpMessageType = 8;
+    }
     apply {
         if (hdr.srh.isValid()) {
             srv6_set_nextsid.apply();
         }
         if (hdr.ipv6.isValid()) {
             if(!srv6_end_iif.apply().hit) {
-                if(!srv6_end.apply().hit) {
+                if(srv6_end.apply().hit) {
+                    // draft-murakami-dmm-user-plane-message-encoding
+                    if (user_md.srv6.gtp_message_type == 1) { // TODO: replace with defined const value
+                        set_gtpu_type(GTPV1_END);
+                    } else if (user_md.srv6.gtp_message_type == 2) {
+                        set_gtpu_type(GTPV1_ERROR);
+                    } else if (user_md.srv6.gtp_message_type == 4) {
+                        set_gtpu_type(GTPV1_ECHO);
+                    } else if (user_md.srv6.gtp_message_type == 8) {
+                        set_gtpu_type(GTPV1_ECHORES);
+                    }
+                } else {
                     srv6_transit_v6.apply();
                 }
             }
         } else if (hdr.ipv4.isValid()) {
-            if(!srv6_transit_udp.apply().hit) {
+            if(srv6_transit_udp.apply().hit) {
+                // Assuming this is GTP/SRv6 translation
+                if (user_md.srv6.gtpv1_type == GTPV1_END) {
+                    set_srv6_GTPV1_END();
+                } else if (user_md.srv6.gtpv1_type == GTPV1_ERROR){
+                    set_srv6_GTPV1_ERROR();
+                } else if (user_md.srv6.gtpv1_type == GTPV1_ECHO){
+                    set_srv6_GTPV1_ECHO();
+                } else if (user_md.srv6.gtpv1_type == GTPV1_ECHORES){
+                    set_srv6_GTPV1_ECHORES();
+                }
+            } else {
                 srv6_transit_v4.apply();
             }
         }

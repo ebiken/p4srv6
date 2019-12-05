@@ -67,6 +67,8 @@ struct EgressMetadata {
 }
 struct SRv6Metadata {
     bit<128> nextsid;
+    bit<4> gtp_message_type; // gtpMessageType in SRH_h
+    bit<8> gtpv1_type;       // messageType in GTPU_h
 }
 // User Metadata (for v1model)
 struct UserMetadata {
