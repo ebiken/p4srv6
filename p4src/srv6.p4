@@ -180,7 +180,10 @@ control SRv6(
         // TODO: Args.Mob.Session
         hdr.ipv6.dstAddr[63:56] = 8w0; // GTP QFI/RQI (0 for now)
         hdr.ipv6.dstAddr[55:24] = hdr.gtpu.teid;
-        hdr.ipv6.dstAddr[23:0] = 24w0; // Padding
+        //hdr.ipv6.dstAddr[23:0] = 24w0; // Padding
+        // Hack for GTP Seq ID interop with Murakami's VPP
+        hdr.ipv6.dstAddr[23:8] = hdr.gtpu.seq;
+        hdr.ipv6.dstAddr[7:0] = 8w0; // Padding
         // remove IPv4/UDP/GTPU headers
         hdr.gtpu.setInvalid();
         hdr.udp.setInvalid();
@@ -321,7 +324,8 @@ control SRv6(
         // IPv6 Payload length - length of extention headers + GTP optional headers(4)
         hdr.gtpu.messageLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w4; 
         hdr.gtpu.teid = hdr.ipv6.dstAddr[55:24]; //TODO: make prefix length configurable
-        hdr.gtpu.seq = 16w0; // TODO: fetch from SID (Args.mob)
+        // hdr.gtpu.seq = 16w0; // TODO: fetch from SID (Args.mob)
+        hdr.gtpu.seq = hdr.ipv6.dstAddr[23:8]; // Hack for interop with Murakami's VPP
         hdr.gtpu.npdu = 8w0;
         hdr.gtpu.nextExtHdr = 8w0;
         // remove IPv6/SRH headers
