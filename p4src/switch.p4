@@ -59,6 +59,7 @@ struct Header {
 // Generic ingress metadata (architecture independent)
 struct IngressMetadata {
     // none defined yet
+    bit<1> flood;
 }
 // Generic egress metadata (architecture independent)
 struct EgressMetadata {
@@ -87,15 +88,30 @@ struct UserMetadata {
 
 control L2Fwd(
     in EthernetAddress ether_dst_addr,
+    in EthernetAddress ether_src_addr,
     inout IngressMetadata ig_md,
-    inout PortId_t egress_port)
+    inout standard_metadata_t st_md)
     (bit<32> table_size_dmac) {
 
-    action dmac_miss() {
-        // TODO: flood to mcast group
+    action smac_miss() {
+        // TODO: send hash to gop4d
+    }
+    table smac {
+        key = {
+            ether_src_addr : exact;
+            st_md.ingress_port : exact;
+        }
+        actions = {
+            smac_miss;
+        }
+        const default_action = smac_miss;
+    }
+    action dmac_miss(bit<16> mcast_grp) {
+        st_md.mcast_grp = mcast_grp;
+        ig_md.flood = 1;
     }
     action dmac_hit(PortId_t port) {
-        egress_port = port;
+        st_md.egress_spec = port;
     }
 
     table dmac {
@@ -106,11 +122,12 @@ control L2Fwd(
             dmac_miss;
             dmac_hit;
         }
-        const default_action = dmac_miss;
+        const default_action = dmac_miss(1000);
         size = table_size_dmac;
     }
 
     apply {
+        smac.apply();
         dmac.apply();
     }
 }
@@ -146,7 +163,7 @@ control SwitchIngress(
 
     // Instantiate controlls
     PortFwd() port_fwd;
-    SRv6() srv6;
+    // DEBUG: SRv6() srv6;
     L2Fwd(1024) l2fwd;
 
     // Local MAC address. Apply Layer 3 tables when hit.
@@ -171,7 +188,7 @@ control SwitchIngress(
         port_fwd.apply(st_md.ingress_port, st_md.egress_spec);
 
         // apply srv6 without local_mac validation for quick testing
-        srv6.apply(hdr, user_md, st_md.ingress_port, st_md.egress_spec);
+        //DEBUG: srv6.apply(hdr, user_md, st_md.ingress_port, st_md.egress_spec);
 
         // switch(local_mac.apply().action_run) {
         //    local_mac_hit : {
@@ -186,11 +203,12 @@ control SwitchIngress(
         //        ***/
         //    }
         // }
+
         // egress_spec vs egress_port in v1model:
         //   https://github.com/p4lang/behavioral-model/issues/603
         //   In v1model, egress_spec is used to specify output port in Ingress.
         //   egress_port is read only and only used in Egress pipeline.
-        l2fwd.apply(hdr.ether.dstAddr, user_md.ig_md, st_md.egress_spec);
+        l2fwd.apply(hdr.ether.dstAddr, hdr.ether.srcAddr, user_md.ig_md, st_md);
     }
 }
 
@@ -202,8 +220,16 @@ control SwitchEgress(
             inout Header hdr,
             inout UserMetadata user_md,
             inout standard_metadata_t st_md) {
-    // do nothing
-    apply { }
+    action drop() { // indirection to support mltiple platform
+        mark_to_drop(st_md);
+    }
+
+    apply {
+        // drop flood packet going back to incoming port
+        if((st_md.ingress_port == st_md.egress_port) && user_md.ig_md.flood == 1) {
+            drop();
+        }
+    }
 }
 
 
@@ -270,4 +296,5 @@ V1Switch(SwitchParser(),
          SwitchEgress(),
          SwitchComputeChecksum(),
          //NoSwitchComputeChecksum(),
-         SwitchDeparser()) main;
+         SwitchDeparser()
+) main;

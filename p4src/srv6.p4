@@ -306,8 +306,11 @@ control SRv6(
         hdr.ipv4.srcAddr = hdr.ipv6.srcAddr[63:32];
         hdr.ipv4.dstAddr = hdr.ipv6.dstAddr[95:64];
         hdr.udp.setValid();
-        hdr.udp.srcPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
-        hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152 TODO: Should support GTP-C for Echo
+        // Hack for JANOG45. TODO: identify GTP type and decide port num.
+        //hdr.udp.srcPort = UDP_PORT_GTPU; // 16w2152
+        //hdr.udp.dstPort = UDP_PORT_GTPU; // 16w2152
+        hdr.udp.srcPort = UDP_PORT_GTPC; // 16w2123
+        hdr.udp.dstPort = UDP_PORT_GTPC; // 16w2123
         hdr.udp.length = hdr.ipv6.payloadLen + 16w20 -16w40; // Payload + UDP(8) + GTP(12)
         //DEBUG hdr.udp.length = hdr.ipv6.payloadLen + 16w16; // Payload + UDP(8) + GTP(8)
         hdr.gtpu.setValid();
@@ -317,7 +320,9 @@ control SRv6(
         hdr.gtpu.e = 1w0; // No Extention Header
         hdr.gtpu.s = 1w1; // YES Sequence number
         hdr.gtpu.pn = 1w0;
-        hdr.gtpu.messageType = GTPV1_GPDU; // 8w255 overwritten based on gtp_message_type
+        // TODO: Hack for JANOG46. Set type based on type.
+        //hdr.gtpu.messageType = GTPV1_GPDU; // 8w255 for GTP-U
+        hdr.gtpu.messageType = 0x01; // TODO: 0x01 Echo request, 0x02 Echo response
         // IPv6 Payload length - length of extention headers + GTP optional headers(4)
         hdr.gtpu.messageLen = hdr.ipv6.payloadLen - 16w8 - (bit<16>)hdr.srh.hdrExtLen*8 + 16w4; 
         hdr.gtpu.teid = hdr.ipv6.dstAddr[55:24]; //TODO: make prefix length configurable
