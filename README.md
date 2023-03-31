@@ -1,6 +1,8 @@
 # p4srv6 ... proto-typing SRv6 functions with P4 lang.
 
-> Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose.  
+> Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose. 
+>
+> Branch v20191206 is created to archive pre-refactoring version started working from April 2023.
 
 The objective of this project is to implement SRv6 functions still under discussion using P4 Lang to make running code available for testing and demo.
 To support SRv6 functions with routing tables and topology requiring vlans etc, we plan to expand this code to include basic layer 2/3 switch features required to test SRv6 as well.
