@@ -128,5 +128,10 @@ Flavours
 
 You can find old version of p4srv6 here
 
-- [2019/03/03] Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose. 
-- [2023/03/31] Branch v20191206 is created to archive pre-refactoring version started working from April 2023.
+- [2019/03/03] Old P4-14 version is moved under [archive/p4-14/](https://github.com/ebiken/p4srv6/tree/sai/archive/p4-14) for archival purpose. 
+- demos presented at events and hackathon are archived as below
+  - branch [janog45](https://github.com/ebiken/p4srv6/tree/janog45)
+  - branch [ietf104](https://github.com/ebiken/p4srv6/tree/ietf104)
+  - branch [ietf106](https://github.com/ebiken/p4srv6/tree/ietf106)
+- [2023/03/31] branch [v20191206](https://github.com/ebiken/p4srv6/tree/v20191206) is created to archive pre-refactoring version started working from April 2023.
+- [2023/04/01] All code, script, docs predates April 2023 refactoring are archived under [archive/](https://github.com/ebiken/p4srv6/tree/sai/archive/)
