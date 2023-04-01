@@ -1,112 +1,119 @@
 # p4srv6 ... proto-typing SRv6 functions with P4 lang.
 
-> Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose. 
->
-> Branch v20191206 is created to archive pre-refactoring version started working from April 2023.
+- [About p4srv6](#about-p4srv6)
+- [P4 Targets and Architectures](#p4-targets-and-architectures)
+- [List of SRv6 functions of interest and status (a.k.a. Road Map)](#list-of-srv6-functions-of-interest-and-status-aka-road-map)
+- [Reference](#reference)
+- [Archives](#archives)
 
-The objective of this project is to implement SRv6 functions still under discussion using P4 Lang to make running code available for testing and demo.
-To support SRv6 functions with routing tables and topology requiring vlans etc, we plan to expand this code to include basic layer 2/3 switch features required to test SRv6 as well.
+## About p4srv6
 
-This project was started as part of SRv6 Mobile User Plane POC conducted in [SRv6 consortium](https://seg6.net).
-Thus current priority is functions from [Mobile Uplane draft](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/).
-But planning to expand to general [SRv6 Network Programming](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/) functions for Edge Computing and Data Center use cases.
+At the time of its inception in 2018, the objective of this project *was* to implement SRv6 functions still under discussion at IETF using P4 Lang to make running code available for testing and demo.
 
-Please raise issue with use case description if you want to any SRv6 functions not implemented yet.
+After 5+ years, the standardization of SRv6 has progressed, and many specifications have become RFCs. Open Source implementation has also advanced. For switch type implementation, SONiC now (in 202211, 202305 release) supports many SRv6 functions including uSID. Switch Abstraction Interface (SAI), which is the de facto standard API for Switch ASICs, is used by SONiC to communicate with ASIC from multiple vendors. e.g. Intel/Barefoot Tofino, Cisco Silicon One, Broadcom, Marvell, etc. 
 
-Note that this is still in very early development (alpha phase) and we expect pipeline structures including tables attributes and indirections would change while adding more features.
+Since SAI has become the de facto of Switch Object and Pipeline Model, p4srv6 is being refactored in a way that is (not perfect but some what) compatible with SAI, aiming to provide an implementation that serves as a educational reference for people who are interested in how packets are processed inside ASIC behind SAI.
 
-## P4 Target and Architecture
+## P4 Targets and Architectures
 
-This is written for v1model architecture and confirmed to run on [BMv2](https://github.com/p4lang/behavioral-model).
+- BMv2 v1model
+  - The main target of this p4srv6 is switch based P4 target which is [BMv2](https://github.com/p4lang/behavioral-model) using [v1model.p4](https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4) architecture.
+- Tofino Native Architecture (TNA)
+  - Tofino Native Architecture is now public on GitHub [Open-Tofino](https://github.com/barefootnetworks/Open-Tofino) with [architecture document(pdf)](https://github.com/barefootnetworks/Open-Tofino/blob/master/PUBLIC_Tofino-Native-Arch.pdf) and [P4 architecture file (tna.p4)](https://github.com/barefootnetworks/Open-Tofino/blob/master/share/p4c/p4include/tna.p4)
+  - However, there are still some restrictions (e.g. doesn't have an ASIC simulator publically available so anyone can try)
+  - Thus, the P4 code in this repo is written to be compatible with TNA as much as posible, but not intented to run full demo nor fully documented. (Since it's difficult to do so without violating Intel NDA/SLA)
+- SmartNIC (FPGA, IPU, DPU, ARM-Manycore, etc.)
+  - There is no plan to support SmartNIC type of targets. However, P4 work in this area is evolving very fast. Thus, I would recommend checking other projects for SRv6 implementation on SmartNIC.
 
-I am trying to make as most code common among different architectures as possible.
-
-Following Target Architectures are in my mind. Any contribution is more than welcome. :)
-* v1model : [v1model.p4](https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4) (Supported)
-* PSA : [psa.p4](https://github.com/p4lang/p4c/blob/master/p4include/psa.p4)
-* p4c-xdp : [xdp_model.p4](https://github.com/vmware/p4c-xdp/blob/master/p4include/xdp_model.p4) 
-* Tofino Model
-* SmartNIC ??
 
 ## List of SRv6 functions of interest and status (a.k.a. Road Map)
 
-* Non functional design items
+* Data Plane (P4) Switching
 
-| Item name | schedule |
-|-----------|----------|
-| BSID friendly table structure | future |
+| Feature                    | Schedule |
+| -------------------------- | -------- |
+| Port Forwarding            | TBD      |
+| L2 (dmac) forwarding       | TBD      |
+| VLAN (port)                | TBD      |
+| VLAN (Tag)                 | TBD      |
+| IPv4 forwarding (lpm/host) | TBD      |
+| IPv6 forwarding (lpm/host) | TBD      |
 
-* Basic Switching Features (Layer 1/2/3)
+* Control Plane
+ 
+| L2 learning agent          | TBD      |
+| Host Interface (ping/arp)  | TBD      |
 
-| Feature | Schedule |
-|---------|----------|
-| Port Forwarding | DONE |
-| dmac table (static) | DONE |
-| VLAN (port) | Dec, 2019 |
-| VLAN (Tag) | future |
-| IPv4 forwarding (LPM) | Dec, 2019 |
-| IPv6 forwarding (LPM) | Dec, 2019 |
-| Host Interface (ping/arp) | future |
-| dmac (learning agent) | future |
+* [draft-ietf-dmm-srv6-mobile-uplane-24](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
 
-* [draft-ietf-dmm-srv6-mobile-uplane-06](https://datatracker.ietf.org/doc/draft-ietf-dmm-srv6-mobile-uplane/)
+| Function         | schedule | description            |
+| ---------------- | -------- | ---------------------- |
+| Args.Mob.Session |          |                        |
+| End.MAP          |          |                        |
+| End.M.GTP6.D     |          | GTP-U/IPv6 => SRv6     |
+| End.M.GTP6.Di    |          | GTP-U/IPv6 => SRv6     |
+| End.M.GTP6.E     |          | SRv6 => GTP-U/IPv6     |
+| End.M.GTP4.E     |          | SRv6 => GTP-U/IPv4     |
+| T.M.GTP4.D       |          | GTP-U/IPv4 => SRv6     |
+| End.Limit        | -        | Rate Limiting function |
 
-Updates from `-03` to `-06` => Nov, 2019
+* [draft-murakami-dmm-user-plane-message-encoding-05](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-encoding/)
 
-| Function | schedule | description |
-|----------|----------|-------------|
-| Args.Mob.Session | | Consider with End.MAP, End.DT and End.DX |
-| End.MAP | | |
-| End.M.GTP6.D | Nov, 2019 | GTP-U/IPv6 => SRv6 |
-| End.M.GTP6.E | Nov, 2019 | SRv6 => GTP-U/IPv6 |
-| End.M.GTP4.E | DONE | SRv6 => GTP-U/IPv4 |
-| T.M.Tmap => T.M.GTP4.D | DONE => Nov, 2019 | GTP-U/IPv4 => SRv6 |
-| End.Limit | | Rate Limiting function |
+| Function               | schedule | description |
+| ---------------------- | -------- | ----------- |
+| Args.Mob.Upmsg         |          |             |
+| Encoding of Tags Field |          |             |
+| User Plane message IE  |          |             |
 
-* [draft-murakami-dmm-user-plane-message-mapping](https://datatracker.ietf.org/doc/draft-murakami-dmm-user-plane-message-mapping/)
 
-Nov, 2019
+* [RFC8986: SRv6 Network Programming](https://datatracker.ietf.org/doc/rfc8986/)
 
-* [draft-filsfils-spring-srv6-network-programming-07](https://datatracker.ietf.org/doc/draft-filsfils-spring-srv6-network-programming/)
+SR Policy Headend Behaviors
 
-Transit behaviors
+| Function        | schedule | description                                   |
+| --------------- | -------- | --------------------------------------------- |
+| H.Encaps        |          | SR Headend with Encapsulation in an SR Policy |
+| H.Encaps.Red    |          | H.Encaps with Reduced Encapsulation           |
+| H.Encaps.L2     |          | H.Encaps Applied to Received L2 Frames        |
+| H.Encaps.L2.Red |          | H.Encaps.Red Applied to Received L2 Frames    |
 
-| Function | schedule | description |
-|----------|----------|-------------|
-| T | n/a | Transit behavior|
-| T.Insert | DONE | |
-| T.Insert.Red | DONE | |
-| T.Encaps | future | |
-| T.Encaps.Red | future | |
-| T.Encaps.L2 | future | |
-| T.Encaps.L2.Red | future | |
+SR Endpoint Behaviors
 
-Functions associated with a SID
-
-| Function | schedule | description |
-|----------|----------|-------------|
-| End | PARTIAL | without error handling |
-| End.X | April, 2019 | |
-| End.T | | |
-| End.DX2 (V) | | |
-| End.DT2 (U/M) | | |
-| End.DX6 | | |
-| End.DX4 | | |
-| End.DT6 | | |
-| End.DT4 | | |
-| End.DT46 | | |
-| End.B6.Insert | | |
-| End.B6.Insert.Red | | |
-| End.B6.Encaps | | |
-| End.B6.Encaps.Red | | |
-| End.BM | | |
-| End.S | | |
+| Function          | schedule | description                                         |
+| ----------------- | -------- | --------------------------------------------------- |
+| End               |          |                                                     |
+| End.X             |          | L3 Cross-Connect                                    |
+| End.T             |          | Specific IPv6 Table Lookup                          |
+| End.DX6           |          | Decapsulation and IPv6 Cross-Connect                |
+| End.DX4           |          | Decapsulation and IPv4 Cross-Connect                |
+| End.DT6           |          | Decapsulation and Specific IPv6 Table Lookup        |
+| End.DT4           |          | Decapsulation and Specific IPv4 Table Lookup        |
+| End.DT46          |          | Decapsulation and Specific IP Table Lookup          |
+| End.DX2           |          | Decapsulation and L2 Cross-Connect                  |
+| End.DX2V          |          | Decapsulation and VLAN L2 Table Lookup              |
+| End.DT2U          |          | Decapsulation and Unicast MAC L2 Table Lookup       |
+| End.DT2M          |          | Decapsulation and L2 Table Flooding                 |
+| End.B6.Encaps     |          | Endpoint Bound to an SRv6 Policy with Encapsulation |
+| End.B6.Encaps.Red |          | End.B6.Encaps with Reduced SRH                      |
+| End.BM            |          | Endpoint Bound to an SR-MPLS Policy                 |
 
 Flavours
 
-| Function | schedule | description |
-|----------|----------|-------------|
-| PSP | May, 2019 | Penultimate Segment Pop |
-| USP | | Ultimate Segment Pop |
-| USD | | Ultimate Segment Decapsulation |
+| Function | schedule | description                    |
+| -------- | -------- | ------------------------------ |
+| PSP      |          | Penultimate Segment Pop        |
+| USP      |          | Ultimate Segment Pop           |
+| USD      |          | Ultimate Segment Decapsulation |
 
+## Reference
+
+- [SRv6 consortium](https://seg6.net) is where many people in Japan interested in SRv6 gathers.
+
+
+
+## Archives
+
+You can find old version of p4srv6 here
+
+- [2019/03/03] Old P4-14 version is moved under [p4-14](https://github.com/ebiken/p4srv6/tree/master/p4-14) for archival purpose. 
+- [2023/03/31] Branch v20191206 is created to archive pre-refactoring version started working from April 2023.
