@@ -2,7 +2,8 @@
 
 - [About p4srv6](#about-p4srv6)
 - [P4 Targets and Architectures](#p4-targets-and-architectures)
-- [List of SRv6 functions of interest and status (a.k.a. Road Map)](#list-of-srv6-functions-of-interest-and-status-aka-road-map)
+- [Roadmap](#roadmap)
+  - [List of SRv6 functions of interest and status](#list-of-srv6-functions-of-interest-and-status)
 - [Reference](#reference)
 - [Archives](#archives)
 
@@ -25,8 +26,20 @@ Since SAI has become the de facto of Switch Object and Pipeline Model, p4srv6 is
 - SmartNIC (FPGA, IPU, DPU, ARM-Manycore, etc.)
   - There is no plan to support SmartNIC type of targets. However, P4 work in this area is evolving very fast. Thus, I would recommend checking other projects for SRv6 implementation on SmartNIC.
 
+## Roadmap
 
-## List of SRv6 functions of interest and status (a.k.a. Road Map)
+> Update after documenting SAI object / pipeline model
+
+- Phase 1
+  - Basic L3 features
+  - Port Forwarding (for debug)
+  - nexthop, neighbor
+- Phase 2
+  - Basic L2 features
+  - VLAN Port/Tag
+  - L2 (dmac) Table
+
+### List of SRv6 functions of interest and status
 
 * Data Plane (P4) Switching
 
